@@ -67,27 +67,6 @@ class FitbarkApi:
             token_updater=token_updater,
         )
 
-    # /------------------------------------
-
-    # def make_request(self, *args, **kwargs):
-    #     """Make request."""
-    #     # This should handle data level errors, improper requests, and bad
-    #     # serialization
-    #     headers = kwargs.get('headers', {})
-    #     if self.access_token:
-    #         headers = {"Authorization": f"Bearer {self.access_token}"}
-    #     kwargs['headers'] = headers
-
-    #     response = self.client.make_request(*args, **kwargs)
-
-    #     if response.status_code == 202:
-    #         return True
-
-    #     try:
-    #         return json.loads(response.content.decode('utf8'))
-    #     except ValueError:
-    #         raise exceptions.BadResponse
-
     def get_user_profile(self) -> Dict[str, str]:
         """Get various information about the specified user.
 
@@ -180,7 +159,7 @@ class FitbarkApi:
         r.raise_for_status()
         return r.json()
 
-    def set_daily_goal(self, slug: str, data: Dict) -> Dict[str, str]:
+    def set_daily_goal(self, slug: str, data: Dict[str, Any]) -> Dict[str, str]:
         """Set the daily goal for a specified dog.
 
         Also get a response with future daily goals (if any). By default, a future
@@ -206,11 +185,11 @@ class FitbarkApi:
     # def _get_common_args(self):
     #     return self.API_ENDPOINT, self.API_VERSION
 
-    def _get_date_string(self, date: str) -> str:
-        if date is not None:
-            date = parse(date)
-            if not isinstance(date, str):
-                return date.strftime("%Y-%m-%d")
+    def _get_date_string(self, date: Optional[str]) -> Optional[str]:
+        # if date is not None:
+        #     date = parse(date)
+        if not isinstance(date, str) and date is not None:
+            return date.strftime("%Y-%m-%d")
         return date
 
     def get_activity_series(
@@ -237,8 +216,8 @@ class FitbarkApi:
         :rtype: json
         """
         today = datetime.date.today()
-        date_from = self._get_date_string(date_from)
-        date_to = self._get_date_string(date_to)
+        date_from = self._get_date_string(str(date_from))
+        date_to = self._get_date_string(str(date_to))
 
         if date_from is None:
             date_from = (today - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
@@ -396,7 +375,8 @@ class FitbarkApi:
         We don't use the built-in token refresh mechanism of OAuth2 session because
         we want to allow overriding the token refresh logic.
         """
-        url = BASE_URL + path
+        url = f"{BASE_URL}{path}"
+
         try:
             return getattr(self._oauth, method)(url, **kwargs)
         except TokenExpiredError:
@@ -404,7 +384,7 @@ class FitbarkApi:
 
             return getattr(self._oauth, method)(url, **kwargs)
 
-    def hass_add_url(self):
+    def hass_add_url(self) -> None:
         """Add callback url for auth."""
         callback_url = f"{self._callback_url}/auth/external/callback"
         self.access_token = self.hass_get_token()
@@ -414,7 +394,7 @@ class FitbarkApi:
             self.hass_add_redirect_urls(redirect_uri)
             _LOGGER.debug("Added %s redirect url", callback_url)
 
-    def hass_remove_url(self):
+    def hass_remove_url(self) -> None:
         """Remove the callback url for auth."""
         callback_url = f"{self._callback_url}/auth/external/callback"
         self.access_token = self.hass_get_token()
@@ -424,7 +404,9 @@ class FitbarkApi:
             self.hass_add_redirect_urls(redirect_uri)
             _LOGGER.debug("Removed %s redirect url", callback_url)
 
-    def hass_make_request(self, method, url, payload, headers):
+    def hass_make_request(
+        self, method: str, url: str, payload: Dict[str, str], headers: Dict[str, str]
+    ) -> Dict[str, str]:
         """Simple request wrapper."""
         response = requests.request(method, url, json=payload, headers=headers)
 
@@ -432,7 +414,7 @@ class FitbarkApi:
         # print(json_data)
         return json_data
 
-    def hass_get_token(self):
+    def hass_get_token(self) -> str:
         """Get the token."""
         url = "https://app.fitbark.com/oauth/token"
         payload = {
@@ -447,16 +429,16 @@ class FitbarkApi:
         access_token = json_data["access_token"]
         return access_token
 
-    def hass_get_redirect_urls(self):
+    def hass_get_redirect_urls(self) -> str:
         """Get a list of redirect URLs."""
         url = "https://app.fitbark.com/api/v2/redirect_urls"
-        payload = {}
+        payload: Dict[str, str] = {}
         headers = {"Authorization": f"Bearer {self.access_token}"}
         json_data = self.hass_make_request("GET", url, payload, headers)
         redirect_uri = json_data["redirect_uri"]
         return redirect_uri
 
-    def hass_add_redirect_urls(self, redirect_uri):
+    def hass_add_redirect_urls(self, redirect_uri: str) -> Dict[str, str]:
         """Add the redirect url."""
         url = "https://app.fitbark.com/api/v2/redirect_urls"
         payload = {"redirect_uri": redirect_uri}

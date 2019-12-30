@@ -5,6 +5,9 @@ import os
 import sys
 import json
 
+# pylint: disable=unused-import
+from typing import Tuple, List, Optional, Union, Callable, Dict, Any  # NOQA
+
 # pylint: disable=relative-beyond-top-level
 from .api import FitbarkApi
 
@@ -29,23 +32,27 @@ _LOGGER.addHandler(ch)
 
 if __name__ == "__main__":
 
-    def get_token():
+    def get_token() -> Dict[str, str]:
         """Get Token."""
         try:
             with open(TOKEN_FILE, "r") as cache:
                 return json.loads(cache.read())
         except IOError:
-            pass
+            _LOGGER.critical("IO Error!")
+            sys.exit(1)
 
-    def set_token(token) -> None:
+    def set_token(token: Dict[str, str]) -> None:
         """Set Token."""
         with open(TOKEN_FILE, "w") as cache:
             cache.write(json.dumps(token))
 
-    def handle_secrets():
+    def handle_secrets() -> Dict[str, str]:
         """Create a secrets file if does not exist or load secrets."""
         if not os.path.isfile(SECRETS_FILE):
-            data = {"client_id": "INSERT IT HERE", "client_secret": "INSERT IT HERE"}
+            data: Dict[str, str] = {
+                "client_id": "INSERT IT HERE",
+                "client_secret": "INSERT IT HERE",
+            }
             with open(SECRETS_FILE, "w") as cache:
                 cache.write(json.dumps(data))
             _LOGGER.critical("Secrets file created! Please configure secrets.json")
@@ -55,7 +62,8 @@ if __name__ == "__main__":
                 with open(SECRETS_FILE, "r") as cache:
                     return json.loads(cache.read())
             except IOError:
-                pass
+                _LOGGER.critical("IO Error!")
+                sys.exit(1)
 
     # Load and verify secrets
     json_secrets = handle_secrets()
@@ -67,12 +75,15 @@ if __name__ == "__main__":
             sys.exit(1)
 
     # Setup API
+    # mypy ERROR:
+    # error: Argument "token_updater" to "FitbarkApi" has incompatible type
+    # "Callable[[Dict[str, str]], None]"; expected "Optional[Callable[[str], None]]"
     api = FitbarkApi(
         client_id,
         client_secret,
         REDIRECT_URI,
         token=get_token(),
-        token_updater=set_token,
+        token_updater=set_token,  # type: ignore
     )
 
     # Begin auth and load token
@@ -101,10 +112,14 @@ if __name__ == "__main__":
     _LOGGER.debug("\nUser Dogs: \n%s\n", r)
 
     x = 0
-    for dog in r["dog_relations"]:
+    # mypy ERROR:
+    # error: Item "None" of "Optional[str]" has no attribute "__iter__" (not iterable)
+    for dog in r["dog_relations"]:  # type: ignore
         x += 1
-        dog_slug = dog["dog"]["slug"]
-        # _LOGGER.debug(dog_slug)
+        # mypy ERROR:
+        # error: Item "str" of "Union[str, Any]" has no attribute "get"
+        dog_slug: Dict[str, str] = dog["dog"]["slug"]  # type: ignore
+        _LOGGER.debug(dog_slug)
 
         # Get various information about a certain dog including name,
         # breed, gender, weight, birthday and picture.
