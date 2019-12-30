@@ -1,0 +1,5 @@
+__pycache__
+secrets.json
+fitbark_auth.json
+json_response
+redirect_uri.py
