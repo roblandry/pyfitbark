@@ -1,4 +1,5 @@
 __pycache__
+.tox
 secrets.json
 fitbark_auth.json
 json_response
