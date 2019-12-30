@@ -1,5 +1,21 @@
-__pycache__
+*.pyc
+*.DS_Store
+.coverage
 .tox
+*~
+docs/_build
+*.egg-info
+*.egg
+.eggs
+dist
+build
+env
+htmlcov
+
+# Editors
+.idea
+
+__pycache__
 secrets.json
 fitbark_auth.json
 json_response

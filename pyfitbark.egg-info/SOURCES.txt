@@ -1,3 +1,6 @@
+AUTHORS
+LICENSE
+MANIFEST.in
 README.rst
 setup.py
 pyfitbark/__init__.py
@@ -8,3 +11,6 @@ pyfitbark.egg-info/SOURCES.txt
 pyfitbark.egg-info/dependency_links.txt
 pyfitbark.egg-info/requires.txt
 pyfitbark.egg-info/top_level.txt
+requirements/base.txt
+requirements/dev.txt
+requirements/test.txt
