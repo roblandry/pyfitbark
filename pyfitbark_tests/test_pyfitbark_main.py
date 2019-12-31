@@ -13,4 +13,3 @@ class TestFitbarkVersion:
 
     def test_main(self, api):
         api = self.api
-        pass

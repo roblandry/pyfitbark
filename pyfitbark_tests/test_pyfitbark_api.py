@@ -574,12 +574,27 @@ class TestFitbarkApi:
     #     return redirect_uri
 
     # @httpretty.activate
-    # def test_(self, api):
-    #     """Test FitbarkApi.get_daily_goal()."""
-    # def hass_add_redirect_urls(self, redirect_uri: str) -> Dict[str, str]:
-    #     """Add the redirect url."""
+    # def test_hass_add_redirect_urls(self, api):
+    #     """Test FitbarkApi.hass_add_redirect_urls()."""
+    #     # def hass_add_redirect_urls(self, redirect_uri: str) -> Dict[str, str]:
     #     url = "https://app.fitbark.com/api/v2/redirect_urls"
+    #     redirect_uri = "urn:ietf:wg:oauth:2.0:oob"
     #     payload = {"redirect_uri": redirect_uri}
-    #     headers = {"Authorization": "Bearer " + self.access_token}
-    #     json_data = self.hass_make_request("POST", url, payload, headers)
-    #     return json_data
+    #     access_token = "1234567890"
+    #     with open(
+    #         os.path.join(CURRENT_DIR, "json/", "get_time_breakdown.json"), "r"
+    #     ) as get_time_breakdown:
+    #         httpretty.register_uri(
+    #             httpretty.POST,
+    #             url,
+    #             body=payload,
+    #         )
+    #     data = api.hass_add_redirect_urls(redirect_uri, access_token)
+    #     # assert isinstance(data, Response)
+    #     # data = data.json()
+    #     # assert isinstance(data, dict)
+    #     # assert len(data) == 1
+    #     # activity_level = data["activity_level"]
+    #     # assert activity_level["min_play"] == 321
+    #     # assert activity_level["min_active"] == 941
+    #     # assert activity_level["min_rest"] == 4498

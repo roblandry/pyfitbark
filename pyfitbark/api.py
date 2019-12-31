@@ -389,22 +389,22 @@ class FitbarkApi:
         """Add callback url for auth."""
         if self._callback_url:
             callback_url = self._callback_url + "/auth/external/callback"
-            self.access_token = self.hass_get_token()
-            redirect_uri = self.hass_get_redirect_urls()
+            access_token = self.hass_get_token()
+            redirect_uri = self.hass_get_redirect_urls(access_token)
             if callback_url not in redirect_uri:
                 redirect_uri = redirect_uri + "\r" + callback_url
-                self.hass_add_redirect_urls(redirect_uri)
+                self.hass_add_redirect_urls(redirect_uri, access_token)
                 _LOGGER.debug("Added %s redirect url", callback_url)
 
     def hass_remove_url(self) -> None:
         """Remove the callback url for auth."""
         if self._callback_url:
             callback_url = self._callback_url + "/auth/external/callback"
-            self.access_token = self.hass_get_token()
-            redirect_uri = self.hass_get_redirect_urls()
+            access_token = self.hass_get_token()
+            redirect_uri = self.hass_get_redirect_urls(access_token)
             if callback_url in redirect_uri:
                 redirect_uri = redirect_uri.replace("\r" + callback_url, "")
-                self.hass_add_redirect_urls(redirect_uri)
+                self.hass_add_redirect_urls(redirect_uri, access_token)
                 _LOGGER.debug("Removed %s redirect url", callback_url)
 
     def hass_make_request(
@@ -432,19 +432,21 @@ class FitbarkApi:
         access_token = json_data["access_token"]
         return access_token
 
-    def hass_get_redirect_urls(self) -> str:
+    def hass_get_redirect_urls(self, access_token: str) -> str:
         """Get a list of redirect URLs."""
         url = "https://app.fitbark.com/api/v2/redirect_urls"
         # payload = {}
-        headers = {"Authorization": "Bearer " + self.access_token}
+        headers = {"Authorization": "Bearer " + access_token}
         json_data = self.hass_make_request("GET", url, {}, headers)
         redirect_uri = json_data["redirect_uri"]
         return redirect_uri
 
-    def hass_add_redirect_urls(self, redirect_uri: str) -> Dict[str, str]:
+    def hass_add_redirect_urls(
+        self, redirect_uri: str, access_token: str
+    ) -> Dict[str, str]:
         """Add the redirect url."""
         url = "https://app.fitbark.com/api/v2/redirect_urls"
         payload = {"redirect_uri": redirect_uri}
-        headers = {"Authorization": "Bearer " + self.access_token}
+        headers = {"Authorization": "Bearer " + access_token}
         json_data = self.hass_make_request("POST", url, payload, headers)
         return json_data
