@@ -347,7 +347,7 @@ class FitbarkApi:
     def request_token(
         self, authorization_response: Optional[str] = None, code: Optional[str] = None
     ) -> Dict[str, str]:
-        """Generic method to fetch a Fitbark access token.
+        """Fetch a Fitbark access token.
 
         :param authorization_response: Authorization response URL, the callback
                                        URL of the request back to you.
@@ -410,7 +410,7 @@ class FitbarkApi:
     def hass_make_request(
         self, method: str, url: str, payload: Dict[str, str], headers: Dict[str, str]
     ) -> Dict[str, str]:
-        """Simple request wrapper."""
+        """Wrap requests."""
         response = requests.request(method, url, json=payload, headers=headers)
 
         json_data = json.loads(response.text)
@@ -435,9 +435,9 @@ class FitbarkApi:
     def hass_get_redirect_urls(self) -> str:
         """Get a list of redirect URLs."""
         url = "https://app.fitbark.com/api/v2/redirect_urls"
-        payload: Dict[str, str] = {}
+        # payload = {}
         headers = {"Authorization": "Bearer " + self.access_token}
-        json_data = self.hass_make_request("GET", url, payload, headers)
+        json_data = self.hass_make_request("GET", url, {}, headers)
         redirect_uri = json_data["redirect_uri"]
         return redirect_uri
 

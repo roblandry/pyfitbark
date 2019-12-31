@@ -6,7 +6,7 @@ FitBark API Library.
 :license: BSD, see LICENSE for more details.
 """
 
-from .api import FitbarkApi
+from .api import FitbarkApi  # NOQA
 
 # Meta.
 
