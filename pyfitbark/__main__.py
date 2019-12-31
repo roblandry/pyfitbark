@@ -101,7 +101,7 @@ if __name__ == "__main__":
     # # get user slug
     # user_slug = r["user"]["slug"]
 
-    # Get the Base64 encoded picture for a specified user.
+    # # Get the Base64 encoded picture for a specified user.
     # r = api.get_user_picture(user_slug)
     # user_pic = r["image"]["data"]
     # _LOGGER.debug("\nUser Picture: \n%s\n", user_pic)
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     # Get the dogs related to the user.
     # NECESSARY for follow on calls. Gets "dog_slug"
     r = api.get_user_related_dogs()
-    _LOGGER.debug("\nUser Dogs: \n%s\n", r)
+    # _LOGGER.debug("\nUser Dogs: \n%s\n", r)
 
     x = 0
     # mypy ERROR:
@@ -119,7 +119,7 @@ if __name__ == "__main__":
         # mypy ERROR:
         # error: Item "str" of "Union[str, Any]" has no attribute "get"
         dog_slug: Dict[str, str] = dog["dog"]["slug"]  # type: ignore
-        _LOGGER.debug(dog_slug)
+        # _LOGGER.debug(dog_slug)
 
         # Get various information about a certain dog including name,
         # breed, gender, weight, birthday and picture.
