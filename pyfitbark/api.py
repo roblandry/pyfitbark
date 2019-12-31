@@ -7,7 +7,8 @@ Source: https://github.com/alexhouse/python-fitbark
         https://github.com/tetienne/somfy-open-api
 """
 import datetime
-from dateutil.parser import parse
+
+# from dateutil.parser import parse
 import json
 import logging
 
@@ -305,7 +306,7 @@ class FitbarkApi:
         :param date_to: the end of the date range to look up
         :type date_to: datetime, date, str
         :return: total minutes of each activity level (play, active, rest) for the
-        period & dog
+            period & dog
         :rtype: json
         """
         today = datetime.date.today()
