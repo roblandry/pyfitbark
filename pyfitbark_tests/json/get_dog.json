@@ -1,0 +1,33 @@
+{
+    "dog": {
+        "slug": "036aa64a-96cc-4fec-bee9-2e3c843208a0",
+        "name": "Rose",
+        "bluetooth_id": "f00ebadd5ca3",
+        "activity_value": 0,
+        "birth": "2015-02-08",
+        "breed1": {"id": 229, "name": "Chesapeake Bay Retriever"},
+        "breed2": {"id": 187, "name": "American Foxhound"},
+        "gender": "F",
+        "weight": 80,
+        "weight_unit": "lbs",
+        "country": "US",
+        "zip": "64108",
+        "tzoffset": -21600,
+        "tzname": "America/Chicago",
+        "min_play": 0,
+        "min_active": 0,
+        "min_rest": 0,
+        "medical_conditions": [
+            {"id": 7, "name": "Overweight", "description": ""}
+        ],
+        "hourly_average": 0,
+        "picture_hash": "c8ba24128de5e2e2631b74ee1f2cb5ba",
+        "neutered": "True",
+        "last_min_time": "2019-12-30T22:59:00.000Z",
+        "last_min_activity": 0,
+        "daily_goal": 1091,
+        "battery_level": 0,
+        "description": "None",
+        "last_sync": "2019-12-31T05:47:21.000Z"
+    }
+}

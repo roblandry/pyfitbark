@@ -23,8 +23,8 @@ from oauthlib.oauth2 import TokenExpiredError
 
 _LOGGER = logging.getLogger(__name__)
 
-API_VERSION = 2
-BASE_URL = "https://app.fitbark.com/api/v" + str(API_VERSION)
+API_VERSION = "2"
+BASE_URL = "https://app.fitbark.com/api/v" + API_VERSION
 FITBARK_OAUTH = "https://app.fitbark.com/oauth/authorize"
 FITBARK_TOKEN = "https://app.fitbark.com/oauth/token"
 FITBARK_REFRESH = "https://app.fitbark.com/oauth/token"

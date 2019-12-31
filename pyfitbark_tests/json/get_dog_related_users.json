@@ -1,0 +1,17 @@
+{
+    "user_relation": [
+        {
+            "id": 8836,
+            "date": "2016-02-08T22:15:58.000Z",
+            "dog_slug": "21d131d5-9616-4e95-bbb2-02c631ef4268",
+            "status": "OWNER",
+            "user": {
+                "slug": "9b4ed51b-81cc-473d-9a41-729418f7f963",
+                "username": "fake_001@fitbark.com",
+                "name": "John Smith",
+                "first_name": "John",
+                "last_name": "Smith"
+            }
+        }
+    ]
+}

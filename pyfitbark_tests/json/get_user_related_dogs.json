@@ -1,0 +1,38 @@
+{
+    "dog_relations": [
+        {
+            "id": 8836,
+            "status": "OWNER",
+            "date": "2016-02-08T22:15:58.000Z",
+            "dog": {
+                "slug": "21d131d5-9616-4e95-bbb2-02c631ef4268",
+                "name": "Bingle",
+                "bluetooth_id": "f00eb7ce3c26",
+                "activity_value": 1123,
+                "activity_date": "2019-12-27T16:47:18.000Z",
+                "birth": "2015-02-08",
+                "breed1": {"id": 392, "name": "Pig", "not_a_dog": "True"},
+                "breed2": {"id": 224, "name": "Cairn Terrier"},
+                "gender": "M",
+                "weight": 5,
+                "weight_unit": "lbs",
+                "country": "US",
+                "zip": "64108",
+                "tzoffset": -21600,
+                "tzname": "America/Chicago",
+                "min_play": 4,
+                "min_active": 158,
+                "min_rest": 438,
+                "medical_conditions": [],
+                "hourly_average": 112,
+                "picture_hash": "",
+                "neutered": "False",
+                "last_min_time": "2019-12-27T09:59:00.000Z",
+                "last_min_activity": 0,
+                "daily_goal": 11900,
+                "battery_level": 0,
+                "description": "None"
+            }
+        }
+    ]
+}
