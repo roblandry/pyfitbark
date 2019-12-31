@@ -376,7 +376,7 @@ class FitbarkApi:
         We don't use the built-in token refresh mechanism of OAuth2 session because
         we want to allow overriding the token refresh logic.
         """
-        url = f"{BASE_URL}{path}"
+        url = BASE_URL + path
 
         try:
             return getattr(self._oauth, method)(url, **kwargs)
@@ -387,23 +387,25 @@ class FitbarkApi:
 
     def hass_add_url(self) -> None:
         """Add callback url for auth."""
-        callback_url = f"{self._callback_url}/auth/external/callback"
-        self.access_token = self.hass_get_token()
-        redirect_uri = self.hass_get_redirect_urls()
-        if callback_url not in redirect_uri:
-            redirect_uri = f"{redirect_uri}\r{callback_url}"
-            self.hass_add_redirect_urls(redirect_uri)
-            _LOGGER.debug("Added %s redirect url", callback_url)
+        if self._callback_url:
+            callback_url = self._callback_url + "/auth/external/callback"
+            self.access_token = self.hass_get_token()
+            redirect_uri = self.hass_get_redirect_urls()
+            if callback_url not in redirect_uri:
+                redirect_uri = redirect_uri + "\r" + callback_url
+                self.hass_add_redirect_urls(redirect_uri)
+                _LOGGER.debug("Added %s redirect url", callback_url)
 
     def hass_remove_url(self) -> None:
         """Remove the callback url for auth."""
-        callback_url = f"{self._callback_url}/auth/external/callback"
-        self.access_token = self.hass_get_token()
-        redirect_uri = self.hass_get_redirect_urls()
-        if callback_url in redirect_uri:
-            redirect_uri = redirect_uri.replace(f"\r{callback_url}", "")
-            self.hass_add_redirect_urls(redirect_uri)
-            _LOGGER.debug("Removed %s redirect url", callback_url)
+        if self._callback_url:
+            callback_url = self._callback_url + "/auth/external/callback"
+            self.access_token = self.hass_get_token()
+            redirect_uri = self.hass_get_redirect_urls()
+            if callback_url in redirect_uri:
+                redirect_uri = redirect_uri.replace("\r" + callback_url, "")
+                self.hass_add_redirect_urls(redirect_uri)
+                _LOGGER.debug("Removed %s redirect url", callback_url)
 
     def hass_make_request(
         self, method: str, url: str, payload: Dict[str, str], headers: Dict[str, str]
@@ -434,7 +436,7 @@ class FitbarkApi:
         """Get a list of redirect URLs."""
         url = "https://app.fitbark.com/api/v2/redirect_urls"
         payload: Dict[str, str] = {}
-        headers = {"Authorization": f"Bearer {self.access_token}"}
+        headers = {"Authorization": "Bearer " + self.access_token}
         json_data = self.hass_make_request("GET", url, payload, headers)
         redirect_uri = json_data["redirect_uri"]
         return redirect_uri
@@ -443,6 +445,6 @@ class FitbarkApi:
         """Add the redirect url."""
         url = "https://app.fitbark.com/api/v2/redirect_urls"
         payload = {"redirect_uri": redirect_uri}
-        headers = {"Authorization": f"Bearer {self.access_token}"}
+        headers = {"Authorization": "Bearer " + self.access_token}
         json_data = self.hass_make_request("POST", url, payload, headers)
         return json_data
