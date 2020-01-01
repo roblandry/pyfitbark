@@ -19,6 +19,8 @@ from .api import FitbarkApi
 REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob"
 TOKEN_FILE = "fitbark_auth.json"
 SECRETS_FILE = "secrets.json"
+CALLBACK_URL = "http://192.168.1.10:8123"
+# CALLBACK_URL = "http://domain.test.com"
 
 # Setup Logging
 _LOGGER = logging.getLogger(__name__)
@@ -84,6 +86,7 @@ if __name__ == "__main__":
         REDIRECT_URI,
         token=get_token(),
         token_updater=set_token,  # type: ignore
+        callback_url=CALLBACK_URL,
     )
 
     # Begin auth and load token
@@ -94,6 +97,29 @@ if __name__ == "__main__":
         code = authorization_response
         set_token(api.request_token(code=code))
 
+    # REDIRECT URL SETTINGS
+    # token = api.hass_get_token()
+
+    # Get redirect urls
+    # redirect_urls = api.hass_get_redirect_urls(token)
+    # print(redirect_urls)
+
+    # Reset redirect urls
+    # r = api.hass_add_redirect_urls("urn:ietf:wg:oauth:2.0:oob", token)
+    # print(r)
+
+    # Add CALLBACK_URL
+    # api.hass_add_url()
+    # redirect_urls = api.hass_get_redirect_urls(token)
+    # print(redirect_urls)
+
+    # Remove CALLBACK_URL
+    # api.hass_remove_url()
+    # redirect_urls = api.hass_get_redirect_urls(token)
+    # print(redirect_urls)
+
+    # -----------------
+    # GET DATA
     # Get various information about the specified user including name,
     # username (email address), profile picture and Facebook ID.
     # r = api.get_user_profile()

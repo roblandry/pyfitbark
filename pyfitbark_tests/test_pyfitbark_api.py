@@ -9,6 +9,8 @@ import pytest
 from pyfitbark.api import BASE_URL, FitbarkApi
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+SLUG = "09659a8a-24c9-4246-92a8-7ecd0650368c"
+ACCESS_TOKEN = "DCEOB729f3i5CuLCyZCkX_5slG_fpc1IhNqf0FnfK_YDmmc7bZ"
 
 
 class TestFitbarkApi:
@@ -43,17 +45,15 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get_user_picture(self, api):
         """Test FitbarkApi.get_user_picture()."""
-        slug = "09659a8a-24c9-4246-92a8-7ecd0650368c"
-
         with open(
             os.path.join(CURRENT_DIR, "json/", "get_user_picture.json"), "r"
         ) as get_user_picture:
             httpretty.register_uri(
                 httpretty.GET,
-                BASE_URL + "/picture/user/" + slug,
+                BASE_URL + "/picture/user/" + SLUG,
                 body=get_user_picture.read(),
             )
-        data = api.get_user_picture(slug)
+        data = api.get_user_picture(SLUG)
         assert isinstance(data, dict)
         assert len(data) == 1
         image = data["image"]
@@ -116,13 +116,11 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get_dog(self, api):
         """Test FitbarkApi.get_dog()."""
-        slug = "09659a8a-24c9-4246-92a8-7ecd0650368c"
-
         with open(os.path.join(CURRENT_DIR, "json/", "get_dog.json"), "r") as get_dog:
             httpretty.register_uri(
-                httpretty.GET, BASE_URL + "/dog/" + slug, body=get_dog.read(),
+                httpretty.GET, BASE_URL + "/dog/" + SLUG, body=get_dog.read(),
             )
-        data = api.get_dog(slug)
+        data = api.get_dog(SLUG)
         assert isinstance(data, dict)
         assert len(data) == 1
         dog = data["dog"]
@@ -161,17 +159,15 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get_dog_picture(self, api):
         """Test FitbarkApi.get_dog_picture()."""
-        slug = "09659a8a-24c9-4246-92a8-7ecd0650368c"
-
         with open(
             os.path.join(CURRENT_DIR, "json/", "get_dog_picture.json"), "r"
         ) as get_dog_picture:
             httpretty.register_uri(
                 httpretty.GET,
-                BASE_URL + "/picture/dog/" + slug,
+                BASE_URL + "/picture/dog/" + SLUG,
                 body=get_dog_picture.read(),
             )
-        data = api.get_dog_picture(slug)
+        data = api.get_dog_picture(SLUG)
         assert isinstance(data, dict)
         assert len(data) == 1
         image = data["image"]
@@ -181,17 +177,15 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get_dog_related_users(self, api):
         """Test FitbarkApi.get_dog_related_users()."""
-        slug = "09659a8a-24c9-4246-92a8-7ecd0650368c"
-
         with open(
             os.path.join(CURRENT_DIR, "json/", "get_dog_related_users.json"), "r"
         ) as get_dog_related_users:
             httpretty.register_uri(
                 httpretty.GET,
-                BASE_URL + "/user_relations/" + slug,
+                BASE_URL + "/user_relations/" + SLUG,
                 body=get_dog_related_users.read(),
             )
-        data = api.get_dog_related_users(slug)
+        data = api.get_dog_related_users(SLUG)
         assert isinstance(data, dict)
         assert len(data) == 1
         user_relation = data["user_relation"][0]
@@ -211,17 +205,15 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get_daily_goal(self, api):
         """Test FitbarkApi.get_daily_goal()."""
-        slug = "09659a8a-24c9-4246-92a8-7ecd0650368c"
-
         with open(
             os.path.join(CURRENT_DIR, "json/", "get_daily_goal.json"), "r"
         ) as get_daily_goal:
             httpretty.register_uri(
                 httpretty.GET,
-                BASE_URL + "/daily_goal/" + slug,
+                BASE_URL + "/daily_goal/" + SLUG,
                 body=get_daily_goal.read(),
             )
-        data = api.get_daily_goal(slug)
+        data = api.get_daily_goal(SLUG)
         assert isinstance(data, dict)
         assert len(data) == 1
         daily_goals = data["daily_goals"][0]
@@ -232,17 +224,16 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_set_daily_goal(self, api):
         """Test FitbarkApi.set_daily_goal()."""
-        slug = "09659a8a-24c9-4246-92a8-7ecd0650368c"
         data = {"daily_goal": 7000, "date": "2014-08-15"}
         with open(
             os.path.join(CURRENT_DIR, "json/", "get_daily_goal.json"), "r"
         ) as get_daily_goal:
             httpretty.register_uri(
                 httpretty.PUT,
-                BASE_URL + "/daily_goal/" + slug,
+                BASE_URL + "/daily_goal/" + SLUG,
                 body=get_daily_goal.read(),
             )
-        data = api.set_daily_goal(slug, data)
+        data = api.set_daily_goal(SLUG, data)
         assert isinstance(data, dict)
         assert len(data) == 1
         daily_goals = data["daily_goals"][0]
@@ -308,8 +299,6 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get_dog_similar_stats(self, api):
         """Test FitbarkApi.get_dog_similar_stats()."""
-        slug = "09659a8a-24c9-4246-92a8-7ecd0650368c"
-
         with open(
             os.path.join(CURRENT_DIR, "json/", "get_dog_similar_stats.json"), "r"
         ) as get_dog_similar_stats:
@@ -318,7 +307,7 @@ class TestFitbarkApi:
                 BASE_URL + "/similar_dogs_stats",
                 body=get_dog_similar_stats.read(),
             )
-        data = api.get_dog_similar_stats(slug)
+        data = api.get_dog_similar_stats(SLUG)
         assert isinstance(data, dict)
         assert len(data) == 1
         similar_dogs_stats = data["similar_dogs_stats"]
@@ -375,16 +364,15 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get(self, api):
         """Test FitbarkApi.get()."""
-        slug = "09659a8a-24c9-4246-92a8-7ecd0650368c"
         with open(
             os.path.join(CURRENT_DIR, "json/", "get_dog_picture.json"), "r"
         ) as get_dog_picture:
             httpretty.register_uri(
                 httpretty.GET,
-                BASE_URL + "/picture/dog/" + slug,
+                BASE_URL + "/picture/dog/" + SLUG,
                 body=get_dog_picture.read(),
             )
-        data = api.get("/picture/dog/" + slug)
+        data = api.get("/picture/dog/" + SLUG)
         # assert isinstance(data, Response)
         data = data.json()
         assert isinstance(data, dict)
@@ -426,17 +414,16 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_put(self, api):
         """Test FitbarkApi.put()."""
-        slug = "09659a8a-24c9-4246-92a8-7ecd0650368c"
         with open(
             os.path.join(CURRENT_DIR, "json/", "get_daily_goal.json"), "r"
         ) as get_daily_goal:
             httpretty.register_uri(
                 httpretty.PUT,
-                BASE_URL + "/daily_goal/" + slug,
+                BASE_URL + "/daily_goal/" + SLUG,
                 body=get_daily_goal.read(),
             )
         data = api.put(
-            "/daily_goal/" + slug, json={"daily_goal": 7000, "date": "2014-08-15"}
+            "/daily_goal/" + SLUG, json={"daily_goal": 7000, "date": "2014-08-15"}
         )
         # assert isinstance(data, Response)
         data = data.json()
@@ -503,10 +490,8 @@ class TestFitbarkApi:
     #         return getattr(self._oauth, method)(url, **kwargs)
 
     # @httpretty.activate
-    # def test_(self, api):
-    #     """Test FitbarkApi.get_daily_goal()."""
-    # def hass_add_url(self) -> None:
-    #     """Add callback url for auth."""
+    # def test_hass_add_url(self, api):
+    #     """Test FitbarkApi.hass_add_url()."""
     #     if self._callback_url:
     #         callback_url = self._callback_url + "/auth/external/callback"
     #         self.access_token = self.hass_get_token()
@@ -531,8 +516,8 @@ class TestFitbarkApi:
     #             _LOGGER.debug("Removed %s redirect url", callback_url)
 
     # @httpretty.activate
-    # def test_(self, api):
-    #     """Test FitbarkApi.get_daily_goal()."""
+    # def test_hass_make_request(self, api):
+    #     """Test FitbarkApi.hass_make_request()."""
     # def hass_make_request(
     #     self, method: str, url: str, payload: Dict[str, str], headers: Dict[str, str]
     # ) -> Dict[str, str]:
@@ -543,58 +528,43 @@ class TestFitbarkApi:
     #     # print(json_data)
     #     return json_data
 
+    # TODO: TEST FAILING
+    # AttributeError: 'int' object has no attribute 'split'
     # @httpretty.activate
-    # def test_(self, api):
-    #     """Test FitbarkApi.get_daily_goal()."""
-    # def hass_get_token(self) -> str:
-    #     """Get the token."""
-    #     url = "https://app.fitbark.com/oauth/token"
-    #     payload = {
-    #         "grant_type": "client_credentials",
-    #         "client_id": self.client_id,
-    #         "client_secret": self.client_secret,
-    #         "scope": "fitbark_open_api_2745H78RVS",
-    #     }
-    #     headers = {"Content-Type": "application/json", "Cache-Control": "no-cache"}
-
-    #     json_data = self.hass_make_request("POST", url, payload, headers)
-    #     access_token = json_data["access_token"]
-    #     return access_token
-
-    # @httpretty.activate
-    # def test_(self, api):
-    #     """Test FitbarkApi.get_daily_goal()."""
-    # def hass_get_redirect_urls(self) -> str:
-    #     """Get a list of redirect URLs."""
-    #     url = "https://app.fitbark.com/api/v2/redirect_urls"
-    #     payload: Dict[str, str] = {}
-    #     headers = {"Authorization": "Bearer " + self.access_token}
-    #     json_data = self.hass_make_request("GET", url, payload, headers)
-    #     redirect_uri = json_data["redirect_uri"]
-    #     return redirect_uri
-
-    # @httpretty.activate
-    # def test_hass_add_redirect_urls(self, api):
-    #     """Test FitbarkApi.hass_add_redirect_urls()."""
-    #     # def hass_add_redirect_urls(self, redirect_uri: str) -> Dict[str, str]:
-    #     url = "https://app.fitbark.com/api/v2/redirect_urls"
-    #     redirect_uri = "urn:ietf:wg:oauth:2.0:oob"
-    #     payload = {"redirect_uri": redirect_uri}
-    #     access_token = "1234567890"
+    # def test_hass_get_token(self, api):
+    #     """Test FitbarkApi.hass_get_token()."""
     #     with open(
-    #         os.path.join(CURRENT_DIR, "json/", "get_time_breakdown.json"), "r"
-    #     ) as get_time_breakdown:
+    #         os.path.join(CURRENT_DIR, "json/", "hass_get_token.json"), "r"
+    #     ) as hass_get_token:
     #         httpretty.register_uri(
-    #             httpretty.POST,
-    #             url,
-    #             body=payload,
+    #             httpretty.POST, BASE_URL + "/oauth/token", body=hass_get_token.read(),
     #         )
-    #     data = api.hass_add_redirect_urls(redirect_uri, access_token)
-    #     # assert isinstance(data, Response)
-    #     # data = data.json()
-    #     # assert isinstance(data, dict)
-    #     # assert len(data) == 1
-    #     # activity_level = data["activity_level"]
-    #     # assert activity_level["min_play"] == 321
-    #     # assert activity_level["min_active"] == 941
-    #     # assert activity_level["min_rest"] == 4498
+    #     data = api.hass_get_token()
+    # assert isinstance(data, dict)
+    # assert len(data) == 1
+    # assert data["redirect_uri"] == "urn:ietf:wg:oauth:2.0:oob"
+
+    @httpretty.activate
+    def test_hass_get_redirect_urls(self, api):
+        """Test FitbarkApi.hass_get_redirect_urls()."""
+        httpretty.register_uri(
+            httpretty.GET,
+            BASE_URL + "/redirect_urls",
+            body='{"redirect_uri": "urn:ietf:wg:oauth:2.0:oob"}',
+        )
+        data = api.hass_get_redirect_urls(ACCESS_TOKEN)
+        assert isinstance(data, list)
+        assert data == ["urn:ietf:wg:oauth:2.0:oob"]
+
+    @httpretty.activate
+    def test_hass_add_redirect_urls(self, api):
+        """Test FitbarkApi.hass_add_redirect_urls()."""
+        httpretty.register_uri(
+            httpretty.POST,
+            BASE_URL + "/redirect_urls",
+            body='{"redirect_uri": "urn:ietf:wg:oauth:2.0:oob"}',
+        )
+        data = api.hass_add_redirect_urls("urn:ietf:wg:oauth:2.0:oob", ACCESS_TOKEN)
+        assert isinstance(data, dict)
+        assert len(data) == 1
+        assert data["redirect_uri"] == "urn:ietf:wg:oauth:2.0:oob"

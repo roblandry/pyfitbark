@@ -12,7 +12,7 @@ For documentation: [http://pyfitbark.readthedocs.org/](http://pyfitbark.readthed
 Requirements
 ============
 
-* [Python 2.7+]()
+* [Python 3.6+]()
 * [python-dateutil](https://pypi.python.org/pypi/python-dateutil/2.4.0) (always)
 * [requests-oauthlib](https://pypi.python.org/pypi/requests-oauthlib) (always)
 * [Sphinx](https://pypi.python.org/pypi/Sphinx) (to create the documention)

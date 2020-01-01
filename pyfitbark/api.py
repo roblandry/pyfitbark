@@ -9,8 +9,8 @@ Source: https://github.com/alexhouse/python-fitbark
 import datetime
 
 # from dateutil.parser import parse
-import json
 import logging
+import re
 
 import requests
 
@@ -24,7 +24,7 @@ from oauthlib.oauth2 import TokenExpiredError
 _LOGGER = logging.getLogger(__name__)
 
 API_VERSION = "2"
-BASE_URL = "https://app.fitbark.com/api/v" + API_VERSION
+BASE_URL = f"https://app.fitbark.com/api/v{API_VERSION}"
 FITBARK_OAUTH = "https://app.fitbark.com/oauth/authorize"
 FITBARK_TOKEN = "https://app.fitbark.com/oauth/token"
 FITBARK_REFRESH = "https://app.fitbark.com/oauth/token"
@@ -388,22 +388,38 @@ class FitbarkApi:
     def hass_add_url(self) -> None:
         """Add callback url for auth."""
         if self._callback_url:
-            callback_url = self._callback_url + "/auth/external/callback"
+            callback_url = f"{self._callback_url}/auth/external/callback"
             access_token = self.hass_get_token()
-            redirect_uri = self.hass_get_redirect_urls(access_token)
-            if callback_url not in redirect_uri:
-                redirect_uri = redirect_uri + "\r" + callback_url
+            redirect_uri_list = self.hass_get_redirect_urls(access_token)
+
+            if callback_url not in redirect_uri_list:
+                redir_str = ""
+                for redir in redirect_uri_list:
+                    if redirect_uri_list.index(redir) == 0:
+                        redir_str += redir
+                    else:
+                        redir_str += f"\r{redir}"
+
+                redirect_uri = f"{redir_str}\r{callback_url}"
                 self.hass_add_redirect_urls(redirect_uri, access_token)
                 _LOGGER.debug("Added %s redirect url", callback_url)
 
     def hass_remove_url(self) -> None:
         """Remove the callback url for auth."""
         if self._callback_url:
-            callback_url = self._callback_url + "/auth/external/callback"
+            callback_url = f"{self._callback_url}/auth/external/callback"
             access_token = self.hass_get_token()
-            redirect_uri = self.hass_get_redirect_urls(access_token)
-            if callback_url in redirect_uri:
-                redirect_uri = redirect_uri.replace("\r" + callback_url, "")
+            redirect_uri_list = self.hass_get_redirect_urls(access_token)
+
+            if callback_url in redirect_uri_list:
+                redir_str = ""
+                for redir in redirect_uri_list:
+                    if redirect_uri_list.index(redir) == 0:
+                        redir_str += redir
+                    else:
+                        redir_str += f"\r{redir}"
+
+                redirect_uri = redir_str.replace(f"\r{callback_url}", "")
                 self.hass_add_redirect_urls(redirect_uri, access_token)
                 _LOGGER.debug("Removed %s redirect url", callback_url)
 
@@ -413,40 +429,49 @@ class FitbarkApi:
         """Wrap requests."""
         response = requests.request(method, url, json=payload, headers=headers)
 
-        json_data = json.loads(response.text)
-        # print(json_data)
+        # json_data = json.loads(response.text)
+        json_data = response.json()
         return json_data
 
     def hass_get_token(self) -> str:
         """Get the token."""
-        url = "https://app.fitbark.com/oauth/token"
-        payload = {
-            "grant_type": "client_credentials",
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
-            "scope": "fitbark_open_api_2745H78RVS",
-        }
-        headers = {"Content-Type": "application/json", "Cache-Control": "no-cache"}
-
-        json_data = self.hass_make_request("POST", url, payload, headers)
+        print("Getting token.")
+        json_data = self.hass_make_request(
+            "POST",
+            "https://app.fitbark.com/oauth/token",
+            {
+                "grant_type": "client_credentials",
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+                "scope": "fitbark_open_api_2745H78RVS",
+            },
+            {"Content-Type": "application/json", "Cache-Control": "no-cache"},
+        )
         access_token = json_data["access_token"]
         return access_token
 
-    def hass_get_redirect_urls(self, access_token: str) -> str:
+    def hass_get_redirect_urls(self, access_token: str) -> List[str]:
         """Get a list of redirect URLs."""
-        url = "https://app.fitbark.com/api/v2/redirect_urls"
-        # payload = {}
-        headers = {"Authorization": "Bearer " + access_token}
-        json_data = self.hass_make_request("GET", url, {}, headers)
-        redirect_uri = json_data["redirect_uri"]
-        return redirect_uri
+        print("Getting Redirect URLs.")
+        json_data = self.hass_make_request(
+            "GET",
+            "https://app.fitbark.com/api/v2/redirect_urls",
+            {},
+            {"Authorization": f"Bearer {access_token}"},
+        )
+        regex = re.compile(r"[\r]")
+        s = regex.sub(",", json_data["redirect_uri"])
+        s_list = s.split(",")
+        return s_list
 
     def hass_add_redirect_urls(
         self, redirect_uri: str, access_token: str
     ) -> Dict[str, str]:
         """Add the redirect url."""
-        url = "https://app.fitbark.com/api/v2/redirect_urls"
-        payload = {"redirect_uri": redirect_uri}
-        headers = {"Authorization": "Bearer " + access_token}
-        json_data = self.hass_make_request("POST", url, payload, headers)
+        json_data = self.hass_make_request(
+            "POST",
+            "https://app.fitbark.com/api/v2/redirect_urls",
+            {"redirect_uri": redirect_uri},
+            {"Authorization": f"Bearer {access_token}"},
+        )
         return json_data
