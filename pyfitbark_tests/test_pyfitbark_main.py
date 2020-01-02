@@ -32,8 +32,31 @@ class MockResponse:
 
     @staticmethod
     def get_from_file(file):
-        file_data = open(os.path.join(CURRENT_DIR, "json/", f"{file}.json"), "r")
-        data = json.loads(file_data.read())
+        # file_data = open(os.path.join(CURRENT_DIR, "json/", f"{file}.json"), "r")
+
+        if "get_user_profile" in file:
+            data = io.StringIO(
+                '{"user": { "slug": "00000000-zzzz-1111-2222-xxxxxxxxxxxx" } }'
+            )
+        elif "get_user_picture" in file:
+            data = io.StringIO(
+                '{"image": {"data": "/9j/4AAQSkZJRgABAQAASABIAAD/4QBYRXhpZgAATU0AKgAAAA" } }'
+            )
+        elif "get_user_related_dogs" in file:
+            data = io.StringIO(
+                '{"dog_relations": [{ "dog": { "slug": "036aa64a-96cc-4fec-bee9-2e3c843208a0" } } ] }'
+            )
+        elif "get_dog_picture" in file:
+            data = io.StringIO(
+                '{"image": {"data": "/9j/4AAQSkZJRgABAQAASABIAAD/4QBYRXhpZgAATU0AKgAAAA" } }'
+            )
+        elif "get_dog" in file:
+            data = io.StringIO(
+                '{"dog": { "slug": "036aa64a-96cc-4fec-bee9-2e3c843208a0", "name": "Rose" } }'
+            )
+
+        # data = json.loads(file_data.read())
+        data = json.loads(data.read())
         return data
 
     @staticmethod
@@ -53,8 +76,17 @@ class MockResponse:
 
 class TestFitbarkMain:
     @pytest.fixture
-    def api(self):
+    def api(self, monkeypatch):
         """Return MOCK Fitbark API."""
+        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile)
+        monkeypatch.setattr(builtins, "open", self.token_file_good)
+        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile)
+        monkeypatch.setattr(
+            FitbarkApi, "get_authorization_url", self.get_authorization_url
+        )
+        monkeypatch.setattr(builtins, "input", self.input)
+        monkeypatch.setattr(FitbarkApi, "request_token", self.request_token)
+
         return MainClass()
 
     # Other Replacement functions
@@ -276,6 +308,15 @@ class TestFitbarkMain:
         assert isinstance(data, list)
 
     def test_main(self, monkeypatch):
+        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile)
+        monkeypatch.setattr(builtins, "open", self.token_file_good)
+        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile)
+        monkeypatch.setattr(
+            FitbarkApi, "get_authorization_url", self.get_authorization_url
+        )
+        monkeypatch.setattr(builtins, "input", self.input)
+        monkeypatch.setattr(FitbarkApi, "request_token", self.request_token)
+
         def test_empty():
             main([])
 

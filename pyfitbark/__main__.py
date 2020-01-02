@@ -243,7 +243,9 @@ class MainClass:
         d_list = []
         # Loops all user dogs
         for dog in s_list:
+            print(dog)
             d = self.api.get_dog_picture(dog)
+            print(f"d: {d}")
             s = d["image"]["data"]  # type: ignore
             d_list.append(s)
         return d_list
