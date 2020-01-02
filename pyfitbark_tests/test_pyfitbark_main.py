@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """PyFitBark Main Tests."""
 import os
-
+import builtins
+import io
 import pytest
 
 import json
@@ -18,6 +19,10 @@ class MockResponse:
         return {"mock_key": "mock_response"}
 
     @staticmethod
+    def get_tuple():
+        return ("mock_response_1", "mock_response_2")
+
+    @staticmethod
     def get_list():
         return ["mock_response_1", "mock_response_2"]
 
@@ -31,6 +36,20 @@ class MockResponse:
         data = json.loads(file_data.read())
         return data
 
+    @staticmethod
+    def token_file_new():
+        data = io.StringIO(
+            '{"client_id": "INSERT IT HERE", "client_secret": "INSERT IT HERE"}'
+        )
+        return data
+
+    @staticmethod
+    def token_file_good():
+        data = io.StringIO(
+            '{"client_id": "Mock Client ID", "client_secret": "Mock Client Secret"}'
+        )
+        return data
+
 
 class TestFitbarkMain:
     @pytest.fixture
@@ -38,35 +57,62 @@ class TestFitbarkMain:
         """Return MOCK Fitbark API."""
         return MainClass()
 
-    # FitbarkApi Replacement functions
-    def get_user_profile(self, *args, **kwargs):
-        return MockResponse.get_from_file("get_user_profile")
+    # Other Replacement functions
+    def os_path_isfile(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return True
 
-    def get_user_picture(self, *args, **kwargs):
-        return MockResponse.get_from_file("get_user_picture")
+    def token_file_good(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return MockResponse.token_file_good()
 
-    def get_user_related_dogs(self, *args, **kwargs):
-        return MockResponse.get_from_file("get_user_related_dogs")
+    def token_file_new(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return MockResponse.token_file_new()
 
-    def get_dog(self, *args, **kwargs):
-        return MockResponse.get_from_file("get_dog")
-
-    def get_dog_picture(self, *args, **kwargs):
-        return MockResponse.get_from_file("get_dog_picture")
-
-    def hass_get_token(self, *args, **kwargs):
+    def input(self, *args, **kwargs):  # pylint: disable=unused-argument
         return MockResponse.get_str()
 
-    def hass_get_redirect_urls(self, *args, **kwargs):
-        return MockResponse.get_list()
+    # Main Replacement functions
+    def set_token(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return True
 
-    def hass_add_redirect_urls(self, *args, **kwargs):
+    # FitbarkApi Replacement functions
+    def get_authorization_url(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return MockResponse.get_tuple()
+
+    def request_token(self, *args, **kwargs):  # pylint: disable=unused-argument
         return MockResponse.get_dict()
 
-    def hass_add_url(self, *args, **kwargs):
+    def get_user_profile(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return MockResponse.get_from_file("get_user_profile")
+
+    def get_user_picture(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return MockResponse.get_from_file("get_user_picture")
+
+    def get_user_related_dogs(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return MockResponse.get_from_file("get_user_related_dogs")
+
+    def get_dog(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return MockResponse.get_from_file("get_dog")
+
+    def get_dog_picture(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return MockResponse.get_from_file("get_dog_picture")
+
+    def hass_get_token(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return MockResponse.get_str()
+
+    def hass_get_redirect_urls(
+        self, *args, **kwargs
+    ):  # pylint: disable=unused-argument
+        return MockResponse.get_list()
+
+    def hass_add_redirect_urls(
+        self, *args, **kwargs
+    ):  # pylint: disable=unused-argument
+        return MockResponse.get_dict()
+
+    def hass_add_url(self, *args, **kwargs):  # pylint: disable=unused-argument
         return None
 
-    def hass_remove_url(self, *args, **kwargs):
+    def hass_remove_url(self, *args, **kwargs):  # pylint: disable=unused-argument
         return None
 
     # Tests
@@ -106,6 +152,36 @@ class TestFitbarkMain:
 
         opts = argparser(["--dog-pic"])
         assert opts.dog_pic
+
+    # def test_load_file(self, api, monkeypatch):
+
+    def test_handle_secrets(self, api, monkeypatch):
+        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile)
+        monkeypatch.setattr(builtins, "open", self.token_file_good)
+
+        data = api.handle_secrets()
+        assert isinstance(data, dict)
+
+    def test_do_auth(self, api, monkeypatch):
+        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile)
+        monkeypatch.setattr(
+            FitbarkApi, "get_authorization_url", self.get_authorization_url
+        )
+        monkeypatch.setattr(builtins, "input", self.input)
+        monkeypatch.setattr(FitbarkApi, "request_token", self.request_token)
+        monkeypatch.setattr(api, "set_token", self.set_token)
+
+        api.do_auth()
+
+    def test_get_token(self, api, monkeypatch):
+        monkeypatch.setattr(builtins, "open", self.token_file_good)
+
+        data = api.get_token()
+        assert isinstance(data, dict)
+
+    def test_set_token(self, api, monkeypatch):
+        monkeypatch.setattr(builtins, "open", self.token_file_good)
+        api.set_token("test_string")
 
     def test_r_get(self, api, monkeypatch):
         monkeypatch.setattr(FitbarkApi, "hass_get_token", self.hass_get_token)
@@ -200,36 +276,91 @@ class TestFitbarkMain:
         assert isinstance(data, list)
 
     def test_main(self, monkeypatch):
-        monkeypatch.setattr(FitbarkApi, "hass_get_token", self.hass_get_token)
-        monkeypatch.setattr(
-            FitbarkApi, "hass_get_redirect_urls", self.hass_get_redirect_urls
-        )
-        monkeypatch.setattr(
-            FitbarkApi, "hass_add_redirect_urls", self.hass_add_redirect_urls
-        )
-        monkeypatch.setattr(FitbarkApi, "hass_add_url", self.hass_add_url)
-        monkeypatch.setattr(FitbarkApi, "hass_remove_url", self.hass_remove_url)
-        monkeypatch.setattr(FitbarkApi, "get_user_profile", self.get_user_profile)
-        monkeypatch.setattr(FitbarkApi, "get_user_picture", self.get_user_picture)
-        monkeypatch.setattr(
-            FitbarkApi, "get_user_related_dogs", self.get_user_related_dogs
-        )
-        monkeypatch.setattr(FitbarkApi, "get_dog", self.get_dog)
-        monkeypatch.setattr(
-            FitbarkApi, "get_user_related_dogs", self.get_user_related_dogs
-        )
-        monkeypatch.setattr(FitbarkApi, "get_dog_picture", self.get_dog_picture)
+        def test_empty():
+            main([])
 
-        main([])
-        # main(['-h'])
-        main(["-g"])
-        main(["-r"])
-        main(["-a"])
-        main(["-x"])
-        main(["-u"])
-        main(["--user-slug"])
-        main(["--user-pic"])
-        main(["-d"])
-        main(["--dog-slug"])
-        main(["--dog"])
-        main(["--dog-pic"])
+        # def test_help():
+        #     main(['-h'])
+
+        def test_arg_get():
+            monkeypatch.setattr(FitbarkApi, "hass_get_token", self.hass_get_token)
+            monkeypatch.setattr(
+                FitbarkApi, "hass_get_redirect_urls", self.hass_get_redirect_urls
+            )
+            main(["-g"])
+
+        def test_arg_reset():
+            monkeypatch.setattr(FitbarkApi, "hass_get_token", self.hass_get_token)
+            monkeypatch.setattr(
+                FitbarkApi, "hass_add_redirect_urls", self.hass_add_redirect_urls
+            )
+            main(["-r"])
+
+        def test_arg_add():
+            monkeypatch.setattr(FitbarkApi, "hass_get_token", self.hass_get_token)
+            monkeypatch.setattr(FitbarkApi, "hass_add_url", self.hass_add_url)
+            monkeypatch.setattr(
+                FitbarkApi, "hass_get_redirect_urls", self.hass_get_redirect_urls
+            )
+            main(["-a"])
+
+        def test_arg_remove():
+            monkeypatch.setattr(FitbarkApi, "hass_get_token", self.hass_get_token)
+            monkeypatch.setattr(FitbarkApi, "hass_remove_url", self.hass_remove_url)
+            monkeypatch.setattr(
+                FitbarkApi, "hass_get_redirect_urls", self.hass_get_redirect_urls
+            )
+            main(["-x"])
+
+        def test_arg_user():
+            monkeypatch.setattr(FitbarkApi, "get_user_profile", self.get_user_profile)
+            main(["-u"])
+
+        def test_arg_user_slug():
+            monkeypatch.setattr(FitbarkApi, "get_user_profile", self.get_user_profile)
+            main(["--user-slug"])
+
+        def test_arg_user_pic():
+            monkeypatch.setattr(FitbarkApi, "get_user_profile", self.get_user_profile)
+            monkeypatch.setattr(FitbarkApi, "get_user_picture", self.get_user_picture)
+            main(["--user-pic"])
+
+        def test_arg_dogs():
+            monkeypatch.setattr(
+                FitbarkApi, "get_user_related_dogs", self.get_user_related_dogs
+            )
+            main(["-d"])
+
+        def test_arg_dog_slug():
+            monkeypatch.setattr(
+                FitbarkApi, "get_user_related_dogs", self.get_user_related_dogs
+            )
+            main(["--dog-slug"])
+
+        def test_arg_dog():
+            monkeypatch.setattr(
+                FitbarkApi, "get_user_related_dogs", self.get_user_related_dogs
+            )
+            monkeypatch.setattr(FitbarkApi, "get_dog", self.get_dog)
+            main(["--dog"])
+
+        def test_arg_dog_pic():
+            monkeypatch.setattr(
+                FitbarkApi, "get_user_related_dogs", self.get_user_related_dogs
+            )
+            monkeypatch.setattr(FitbarkApi, "get_dog_picture", self.get_dog_picture)
+            main(["--dog-pic"])
+
+        test_empty()
+        # test_help():
+        test_arg_get()
+        test_arg_reset()
+        test_arg_add()
+        test_arg_remove()
+        test_arg_user()
+        test_arg_user_slug()
+        test_arg_user_pic()
+        test_arg_dogs()
+        test_arg_dog_slug()
+        test_arg_dog()
+        test_arg_dog_pic()
