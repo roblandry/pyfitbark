@@ -8,11 +8,43 @@ import pytest
 
 import datetime
 
+import json
+
+from requests_oauthlib import OAuth2Session
+
 from pyfitbark.api import BASE_URL, FitbarkApi
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 SLUG = "09659a8a-24c9-4246-92a8-7ecd0650368c"
 ACCESS_TOKEN = "DCEOB729f3i5CuLCyZCkX_5slG_fpc1IhNqf0FnfK_YDmmc7bZ"
+
+
+class MockResponse:
+    @staticmethod
+    def oauth_fetch_token():
+        return {"mock_key": "mock_response"}
+
+    @staticmethod
+    def oauth_refresh_token():
+        return {"mock_key": "mock_response"}
+
+    @staticmethod
+    def get_dict():
+        return {"mock_key": "mock_response"}
+
+    @staticmethod
+    def get_list():
+        return ["mock_response_1", "mock_response_2"]
+
+    @staticmethod
+    def get_redirect_urls():
+        return ["http://mock_url.com/auth/external/callback"]
+
+    @staticmethod
+    def get_from_file(file):
+        file_data = open(os.path.join(CURRENT_DIR, "json/", f"{file}.json"), "r")
+        data = json.loads(file_data.read())
+        return data
 
 
 class TestFitbarkApi:
@@ -21,17 +53,48 @@ class TestFitbarkApi:
     @pytest.fixture
     def api(self):
         """Return MOCK Fitbark API."""
-        return FitbarkApi("foo", "faa", "https://whatever.com")
+        return FitbarkApi(
+            "foo", "faa", "https://whatever.com", None, None, "http://mock_url.com"
+        )
+
+    def hass_get_token(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return MockResponse.get_from_file("hass_get_token")
+
+    def hass_get_redirect_urls(
+        self, *args, **kwargs
+    ):  # pylint: disable=unused-argument
+        return MockResponse.get_redirect_urls()
+
+    def hass_add_redirect_urls(
+        self, *args, **kwargs
+    ):  # pylint: disable=unused-argument
+        return MockResponse.get_dict()
+
+    def hass_make_request(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return MockResponse.get_from_file("hass_get_token")
+
+    def hass_add_url(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return None
+
+    def hass_remove_url(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return None
+
+    def mock_fetch_token(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return MockResponse.oauth_fetch_token()
+
+    def mock_refresh_token(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return MockResponse.oauth_refresh_token()
+
+    def open_file(self, file, method, url):
+        """Open file and register httpretty uri."""
+        with open(os.path.join(CURRENT_DIR, "json/", f"{file}.json"), "r") as o_file:
+            httpretty.register_uri(method, f"{BASE_URL}{url}", body=o_file.read())
 
     @httpretty.activate
     def test_get_user_profile(self, api):
         """Test FitbarkApi.get_user_profile()."""
-        with open(
-            os.path.join(CURRENT_DIR, "json/", "get_user_profile.json"), "r"
-        ) as get_user_profile:
-            httpretty.register_uri(
-                httpretty.GET, BASE_URL + "/user", body=get_user_profile.read()
-            )
+        self.open_file("get_user_profile", httpretty.GET, "/user")
+
         data = api.get_user_profile()
         assert isinstance(data, dict)
         assert len(data) == 1
@@ -47,14 +110,8 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get_user_picture(self, api):
         """Test FitbarkApi.get_user_picture()."""
-        with open(
-            os.path.join(CURRENT_DIR, "json/", "get_user_picture.json"), "r"
-        ) as get_user_picture:
-            httpretty.register_uri(
-                httpretty.GET,
-                BASE_URL + "/picture/user/" + SLUG,
-                body=get_user_picture.read(),
-            )
+        self.open_file("get_user_picture", httpretty.GET, f"/picture/user/{SLUG}")
+
         data = api.get_user_picture(SLUG)
         assert isinstance(data, dict)
         assert len(data) == 1
@@ -65,14 +122,8 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get_user_related_dogs(self, api):
         """Test FitbarkApi.get_user_related_dogs()."""
-        with open(
-            os.path.join(CURRENT_DIR, "json/", "get_user_related_dogs.json"), "r"
-        ) as get_user_related_dogs:
-            httpretty.register_uri(
-                httpretty.GET,
-                BASE_URL + "/dog_relations",
-                body=get_user_related_dogs.read(),
-            )
+        self.open_file("get_user_related_dogs", httpretty.GET, "/dog_relations")
+
         data = api.get_user_related_dogs()
         assert isinstance(data, dict)
         assert len(data) == 1
@@ -118,10 +169,8 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get_dog(self, api):
         """Test FitbarkApi.get_dog()."""
-        with open(os.path.join(CURRENT_DIR, "json/", "get_dog.json"), "r") as get_dog:
-            httpretty.register_uri(
-                httpretty.GET, BASE_URL + "/dog/" + SLUG, body=get_dog.read(),
-            )
+        self.open_file("get_dog", httpretty.GET, f"/dog/{SLUG}")
+
         data = api.get_dog(SLUG)
         assert isinstance(data, dict)
         assert len(data) == 1
@@ -161,14 +210,8 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get_dog_picture(self, api):
         """Test FitbarkApi.get_dog_picture()."""
-        with open(
-            os.path.join(CURRENT_DIR, "json/", "get_dog_picture.json"), "r"
-        ) as get_dog_picture:
-            httpretty.register_uri(
-                httpretty.GET,
-                BASE_URL + "/picture/dog/" + SLUG,
-                body=get_dog_picture.read(),
-            )
+        self.open_file("get_dog_picture", httpretty.GET, f"/picture/dog/{SLUG}")
+
         data = api.get_dog_picture(SLUG)
         assert isinstance(data, dict)
         assert len(data) == 1
@@ -179,14 +222,10 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get_dog_related_users(self, api):
         """Test FitbarkApi.get_dog_related_users()."""
-        with open(
-            os.path.join(CURRENT_DIR, "json/", "get_dog_related_users.json"), "r"
-        ) as get_dog_related_users:
-            httpretty.register_uri(
-                httpretty.GET,
-                BASE_URL + "/user_relations/" + SLUG,
-                body=get_dog_related_users.read(),
-            )
+        self.open_file(
+            "get_dog_related_users", httpretty.GET, f"/user_relations/{SLUG}"
+        )
+
         data = api.get_dog_related_users(SLUG)
         assert isinstance(data, dict)
         assert len(data) == 1
@@ -207,14 +246,8 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get_daily_goal(self, api):
         """Test FitbarkApi.get_daily_goal()."""
-        with open(
-            os.path.join(CURRENT_DIR, "json/", "get_daily_goal.json"), "r"
-        ) as get_daily_goal:
-            httpretty.register_uri(
-                httpretty.GET,
-                BASE_URL + "/daily_goal/" + SLUG,
-                body=get_daily_goal.read(),
-            )
+        self.open_file("get_daily_goal", httpretty.GET, f"/daily_goal/{SLUG}")
+
         data = api.get_daily_goal(SLUG)
         assert isinstance(data, dict)
         assert len(data) == 1
@@ -226,15 +259,9 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_set_daily_goal(self, api):
         """Test FitbarkApi.set_daily_goal()."""
+        self.open_file("get_daily_goal", httpretty.PUT, f"/daily_goal/{SLUG}")
         data = {"daily_goal": 7000, "date": "2014-08-15"}
-        with open(
-            os.path.join(CURRENT_DIR, "json/", "get_daily_goal.json"), "r"
-        ) as get_daily_goal:
-            httpretty.register_uri(
-                httpretty.PUT,
-                BASE_URL + "/daily_goal/" + SLUG,
-                body=get_daily_goal.read(),
-            )
+
         data = api.set_daily_goal(SLUG, data)
         assert isinstance(data, dict)
         assert len(data) == 1
@@ -293,14 +320,7 @@ class TestFitbarkApi:
             assert records["daily_target"] == 5000
             assert records["has_trophy"] == 1
 
-        with open(
-            os.path.join(CURRENT_DIR, "json/", "get_activity_series.json"), "r"
-        ) as get_activity_series:
-            httpretty.register_uri(
-                httpretty.POST,
-                BASE_URL + "/activity_series",
-                body=get_activity_series.read(),
-            )
+        self.open_file("get_activity_series", httpretty.POST, "/activity_series")
 
         data = api.get_activity_series("/activity_series")
         verify_return(data)
@@ -318,14 +338,8 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get_dog_similar_stats(self, api):
         """Test FitbarkApi.get_dog_similar_stats()."""
-        with open(
-            os.path.join(CURRENT_DIR, "json/", "get_dog_similar_stats.json"), "r"
-        ) as get_dog_similar_stats:
-            httpretty.register_uri(
-                httpretty.POST,
-                BASE_URL + "/similar_dogs_stats",
-                body=get_dog_similar_stats.read(),
-            )
+        self.open_file("get_dog_similar_stats", httpretty.POST, "/similar_dogs_stats")
+
         data = api.get_dog_similar_stats(SLUG)
         assert isinstance(data, dict)
         assert len(data) == 1
@@ -354,14 +368,7 @@ class TestFitbarkApi:
             assert len(data) == 1
             assert data["activity_value"] == 26305
 
-        with open(
-            os.path.join(CURRENT_DIR, "json/", "get_activity_totals.json"), "r"
-        ) as get_activity_totals:
-            httpretty.register_uri(
-                httpretty.POST,
-                BASE_URL + "/activity_totals",
-                body=get_activity_totals.read(),
-            )
+        self.open_file("get_activity_totals", httpretty.POST, "/activity_totals")
 
         data = api.get_activity_totals("/activity_totals")
         verify_return(data)
@@ -386,14 +393,7 @@ class TestFitbarkApi:
             assert activity_level["min_active"] == 941
             assert activity_level["min_rest"] == 4498
 
-        with open(
-            os.path.join(CURRENT_DIR, "json/", "get_time_breakdown.json"), "r"
-        ) as get_time_breakdown:
-            httpretty.register_uri(
-                httpretty.POST,
-                BASE_URL + "/time_breakdown",
-                body=get_time_breakdown.read(),
-            )
+        self.open_file("get_time_breakdown", httpretty.POST, "/time_breakdown")
 
         data = api.get_time_breakdown("/time_breakdown")
         verify_return(data)
@@ -407,14 +407,8 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get(self, api):
         """Test FitbarkApi.get()."""
-        with open(
-            os.path.join(CURRENT_DIR, "json/", "get_dog_picture.json"), "r"
-        ) as get_dog_picture:
-            httpretty.register_uri(
-                httpretty.GET,
-                BASE_URL + "/picture/dog/" + SLUG,
-                body=get_dog_picture.read(),
-            )
+        self.open_file("get_dog_picture", httpretty.GET, f"/picture/dog/{SLUG}")
+
         data = api.get("/picture/dog/" + SLUG)
         # assert isinstance(data, Response)
         data = data.json()
@@ -427,14 +421,8 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_post(self, api):
         """Test FitbarkApi.post()."""
-        with open(
-            os.path.join(CURRENT_DIR, "json/", "get_time_breakdown.json"), "r"
-        ) as get_time_breakdown:
-            httpretty.register_uri(
-                httpretty.POST,
-                BASE_URL + "/time_breakdown",
-                body=get_time_breakdown.read(),
-            )
+        self.open_file("get_time_breakdown", httpretty.POST, "/time_breakdown")
+
         data = api.post(
             "/time_breakdown",
             json={
@@ -457,14 +445,8 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_put(self, api):
         """Test FitbarkApi.put()."""
-        with open(
-            os.path.join(CURRENT_DIR, "json/", "get_daily_goal.json"), "r"
-        ) as get_daily_goal:
-            httpretty.register_uri(
-                httpretty.PUT,
-                BASE_URL + "/daily_goal/" + SLUG,
-                body=get_daily_goal.read(),
-            )
+        self.open_file("get_daily_goal", httpretty.PUT, f"/daily_goal/{SLUG}")
+
         data = api.put(
             "/daily_goal/" + SLUG, json={"daily_goal": 7000, "date": "2014-08-15"}
         )
@@ -481,92 +463,59 @@ class TestFitbarkApi:
         """Test FitbarkApi.get_authorization_url()."""
         assert isinstance(api.get_authorization_url(), tuple)
 
-    # TODO: ERROR
-    # InvalidClientError
-    # def test_request_token(self, api):
-    #     """Test FitbarkApi.request_token()."""
-    #     assert isinstance(
-    #         api.request_token("fake authorization_response", "fake code"), dict
-    #     )
+    def test_request_token(self, api, monkeypatch):
+        """Test FitbarkApi.request_token()."""
+        monkeypatch.setattr(OAuth2Session, "fetch_token", self.mock_fetch_token)
+        # A OAuth2Token object (a dict too).
+        assert isinstance(
+            api.request_token("fake authorization_response", "fake code"), dict
+        )
 
-    # TODO: ERROR
-    # UnsupportedGrantTypeError
-    # def test_refresh_tokens(self, api):
-    #     """Test FitbarkApi.refresh_tokens()."""
-    #     assert isinstance(api.refresh_tokens(), dict)
+    def test_refresh_tokens(self, api, monkeypatch):
+        """Test FitbarkApi.refresh_tokens()."""
+        monkeypatch.setattr(OAuth2Session, "refresh_token", self.mock_refresh_token)
 
-    # @httpretty.activate
-    # def test__request(self, api):
-    #     """Test FitbarkApi.get_daily_goal()."""
-    # def _request(self, method: str, path: str, **kwargs: Any) -> Response:
-    #     """Make a request.
-
-    #     We don't use the built-in token refresh mechanism of OAuth2 session because
-    #     we want to allow overriding the token refresh logic.
-    #     """
-    #     url = BASE_URL + path
-
-    #     try:
-    #         return getattr(self._oauth, method)(url, **kwargs)
-    #     except TokenExpiredError:
-    #         self._oauth.token = self.refresh_tokens()
-
-    #         return getattr(self._oauth, method)(url, **kwargs)
+        assert isinstance(api.refresh_tokens(), dict)
 
     # @httpretty.activate
-    # def test_hass_add_url(self, api):
-    #     """Test FitbarkApi.hass_add_url()."""
-    #     if self._callback_url:
-    #         callback_url = self._callback_url + "/auth/external/callback"
-    #         self.access_token = self.hass_get_token()
-    #         redirect_uri = self.hass_get_redirect_urls()
-    #         if callback_url not in redirect_uri:
-    #             redirect_uri = redirect_uri + "\r" + callback_url
-    #             self.hass_add_redirect_urls(redirect_uri)
-    #             _LOGGER.debug("Added %s redirect url", callback_url)
+    # def test_request(self, api, monkeypatch):
+    #     """Test FitbarkApi._request()."""
+    #     monkeypatch.setattr(OAuth2Session, "get", self.mock_get)
+    #     except TokenExpiredError
+    #     self.refresh_tokens
+
+    def test_hass_add_url(self, api, monkeypatch):
+        """Test FitbarkApi.hass_add_url()."""
+        monkeypatch.setattr(api, "hass_get_token", self.hass_get_token)
+        monkeypatch.setattr(api, "hass_get_redirect_urls", self.hass_get_redirect_urls)
+        monkeypatch.setattr(api, "hass_add_redirect_urls", self.hass_add_redirect_urls)
+
+        # api._callback_url = "http://mock_url.com"  # pylint: disable=protected-access
+        api.hass_add_url()
+
+    def test_hass_remove_url(self, api, monkeypatch):
+        """Test FitbarkApi.hass_remove_url()."""
+        monkeypatch.setattr(api, "hass_get_token", self.hass_get_token)
+        monkeypatch.setattr(api, "hass_get_redirect_urls", self.hass_get_redirect_urls)
+        monkeypatch.setattr(api, "hass_add_redirect_urls", self.hass_add_redirect_urls)
+
+        # api._callback_url = "http://mock_url.com"  # pylint: disable=protected-access
+        api.hass_remove_url()
 
     # @httpretty.activate
-    # def test_(self, api):
-    #     """Test FitbarkApi.get_daily_goal()."""
-    # def hass_remove_url(self) -> None:
-    #     """Remove the callback url for auth."""
-    #     if self._callback_url:
-    #         callback_url = self._callback_url + "/auth/external/callback"
-    #         self.access_token = self.hass_get_token()
-    #         redirect_uri = self.hass_get_redirect_urls()
-    #         if callback_url in redirect_uri:
-    #             redirect_uri = redirect_uri.replace("\r" + callback_url, "")
-    #             self.hass_add_redirect_urls(redirect_uri)
-    #             _LOGGER.debug("Removed %s redirect url", callback_url)
-
-    # @httpretty.activate
-    # def test_hass_make_request(self, api):
+    # def test_hass_make_request(self, api, monkeypatch):
     #     """Test FitbarkApi.hass_make_request()."""
-    # def hass_make_request(
-    #     self, method: str, url: str, payload: Dict[str, str], headers: Dict[str, str]
-    # ) -> Dict[str, str]:
-    #     """Simple request wrapper."""
-    #     response = requests.request(method, url, json=payload, headers=headers)
 
-    #     json_data = json.loads(response.text)
-    #     # print(json_data)
-    #     return json_data
+    def test_hass_get_token(self, api, monkeypatch):
+        """Test FitbarkApi.hass_get_token()."""
+        monkeypatch.setattr(api, "hass_make_request", self.hass_make_request)
 
-    # TODO: TEST FAILING
-    # AttributeError: 'int' object has no attribute 'split'
-    # @httpretty.activate
-    # def test_hass_get_token(self, api):
-    #     """Test FitbarkApi.hass_get_token()."""
-    #     with open(
-    #         os.path.join(CURRENT_DIR, "json/", "hass_get_token.json"), "r"
-    #     ) as hass_get_token:
-    #         httpretty.register_uri(
-    #             httpretty.POST, BASE_URL + "/oauth/token", body=hass_get_token.read(),
-    #         )
-    #     data = api.hass_get_token()
-    # assert isinstance(data, dict)
-    # assert len(data) == 1
-    # assert data["redirect_uri"] == "urn:ietf:wg:oauth:2.0:oob"
+        data = api.hass_get_token()
+        assert isinstance(data, str)
+        assert (
+            data
+            == "db73736bc5713e986415fd22345678e2a1f0d8f84eefee3d78515b643db329c341679"
+        )
 
     @httpretty.activate
     def test_hass_get_redirect_urls(self, api):

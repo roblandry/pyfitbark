@@ -217,8 +217,8 @@ class FitbarkApi:
         :rtype: json
         """
         today = datetime.date.today()
-        date_from = self._get_date_string(str(date_from))
-        date_to = self._get_date_string(str(date_to))
+        date_from = self._get_date_string(date_from)
+        date_to = self._get_date_string(date_to)
 
         if date_from is None:
             date_from = (today - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
@@ -411,6 +411,7 @@ class FitbarkApi:
             access_token = self.hass_get_token()
             redirect_uri_list = self.hass_get_redirect_urls(access_token)
 
+            # print(f"{callback_url} in {redirect_uri_list}")
             if callback_url in redirect_uri_list:
                 redir_str = ""
                 for redir in redirect_uri_list:
@@ -429,7 +430,6 @@ class FitbarkApi:
         """Wrap requests."""
         response = requests.request(method, url, json=payload, headers=headers)
 
-        # json_data = json.loads(response.text)
         json_data = response.json()
         return json_data
 
