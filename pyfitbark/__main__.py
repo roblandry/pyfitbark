@@ -5,7 +5,7 @@ import os
 import sys
 import json
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 
 # pylint: disable=unused-import
 from typing import Tuple, List, Optional, Union, Callable, Dict, Any  # NOQA
@@ -34,7 +34,7 @@ ch.setFormatter(formatter)
 _LOGGER.addHandler(ch)
 
 
-def argparser() -> ArgumentParser:
+def argparser(args: List[str]) -> Namespace:
     """Construct the ArgumentParser for the CLI."""
     parser = ArgumentParser(prog="pyfitbark")
     # Redirect Logic
@@ -84,11 +84,11 @@ def argparser() -> ArgumentParser:
         default=False,
         action="store_true",
     )
-    return parser
+    return parser.parse_args(args)
 
 
 class MainClass:
-    """Main class."""
+    """Main PyFitbark class."""
 
     def __init__(self) -> None:
         """Init."""
@@ -249,11 +249,9 @@ class MainClass:
         return d_list
 
 
-def main() -> None:
+def main(opts: List[str]) -> None:
     """Main."""
-    parser = argparser()
-    args = parser.parse_args()
-    # print(type(parser))
+    args = argparser(opts)
 
     api = MainClass()
     r: Any = None
@@ -320,4 +318,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
