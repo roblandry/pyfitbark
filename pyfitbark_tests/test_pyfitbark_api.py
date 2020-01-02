@@ -11,6 +11,7 @@ import datetime
 import json
 
 from requests_oauthlib import OAuth2Session
+from oauthlib.oauth2 import TokenExpiredError
 
 from pyfitbark.api import BASE_URL, FitbarkApi
 
@@ -37,8 +38,15 @@ class MockResponse:
         return ["mock_response_1", "mock_response_2"]
 
     @staticmethod
-    def get_redirect_urls():
-        return ["http://mock_url.com/auth/external/callback"]
+    def hass_get_redirect_urls_match():
+        return [
+            "http://mock_url.com/auth/external/callback",
+            "http://mock_url.com/auth/external/callback2",
+        ]
+
+    @staticmethod
+    def hass_get_redirect_urls_no_match():
+        return ["http://mock_1_url.com", "http://mock_2_url.com"]
 
     @staticmethod
     def get_from_file(file):
@@ -63,7 +71,12 @@ class TestFitbarkApi:
     def hass_get_redirect_urls(
         self, *args, **kwargs
     ):  # pylint: disable=unused-argument
-        return MockResponse.get_redirect_urls()
+        return MockResponse.hass_get_redirect_urls_match()
+
+    def hass_get_redirect_urls_no_match(
+        self, *args, **kwargs
+    ):  # pylint: disable=unused-argument
+        return MockResponse.hass_get_redirect_urls_no_match()
 
     def hass_add_redirect_urls(
         self, *args, **kwargs
@@ -84,6 +97,12 @@ class TestFitbarkApi:
 
     def mock_refresh_token(self, *args, **kwargs):  # pylint: disable=unused-argument
         return MockResponse.oauth_refresh_token()
+
+    def mock_get(self, *args, **kwargs):  # pylint: disable=unused-argument
+        raise TokenExpiredError
+
+    def token_updater(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return True
 
     def open_file(self, file, method, url):
         """Open file and register httpretty uri."""
@@ -269,13 +288,6 @@ class TestFitbarkApi:
         assert len(daily_goals) == 2
         assert daily_goals["goal"] == 1091
         assert daily_goals["date"] == "2019-12-31"
-
-    # # def _build_api_url(self, endpoint):
-    # #     return "{0}/v{1}/{endpoint}".format(
-    # #         self.API_ENDPOINT, self.API_VERSION, endpoint=endpoint)
-
-    # # def _get_common_args(self):
-    # #     return self.API_ENDPOINT, self.API_VERSION
 
     def test_get_date_string(self, api):
         """Test FitbarkApi._get_date_string()."""
@@ -474,20 +486,24 @@ class TestFitbarkApi:
     def test_refresh_tokens(self, api, monkeypatch):
         """Test FitbarkApi.refresh_tokens()."""
         monkeypatch.setattr(OAuth2Session, "refresh_token", self.mock_refresh_token)
+        monkeypatch.setattr(api, "token_updater", self.token_updater)
 
         assert isinstance(api.refresh_tokens(), dict)
 
-    # @httpretty.activate
-    # def test_request(self, api, monkeypatch):
-    #     """Test FitbarkApi._request()."""
-    #     monkeypatch.setattr(OAuth2Session, "get", self.mock_get)
-    #     except TokenExpiredError
-    #     self.refresh_tokens
+    def test_request(self, api, monkeypatch):
+        """Test FitbarkApi._request()."""
+        monkeypatch.setattr(OAuth2Session, "get", self.mock_get)
+        monkeypatch.setattr(OAuth2Session, "refresh_token", self.mock_refresh_token)
+
+        with pytest.raises(TokenExpiredError):
+            api._request("get", "/path", json="{}")  # pylint: disable=protected-access
 
     def test_hass_add_url(self, api, monkeypatch):
         """Test FitbarkApi.hass_add_url()."""
         monkeypatch.setattr(api, "hass_get_token", self.hass_get_token)
-        monkeypatch.setattr(api, "hass_get_redirect_urls", self.hass_get_redirect_urls)
+        monkeypatch.setattr(
+            api, "hass_get_redirect_urls", self.hass_get_redirect_urls_no_match
+        )
         monkeypatch.setattr(api, "hass_add_redirect_urls", self.hass_add_redirect_urls)
 
         # api._callback_url = "http://mock_url.com"  # pylint: disable=protected-access

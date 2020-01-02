@@ -78,9 +78,8 @@ class TestFitbarkMain:
     @pytest.fixture
     def api(self, monkeypatch):
         """Return MOCK Fitbark API."""
-        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile)
         monkeypatch.setattr(builtins, "open", self.token_file_good)
-        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile)
+        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile_true)
         monkeypatch.setattr(
             FitbarkApi, "get_authorization_url", self.get_authorization_url
         )
@@ -90,8 +89,14 @@ class TestFitbarkMain:
         return MainClass()
 
     # Other Replacement functions
-    def os_path_isfile(self, *args, **kwargs):  # pylint: disable=unused-argument
+    def os_path_isfile_true(self, *args, **kwargs):  # pylint: disable=unused-argument
         return True
+
+    def os_path_isfile_false(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return False
+
+    def io_error(self, *args, **kwargs):  # pylint: disable=unused-argument
+        raise IOError
 
     def token_file_good(self, *args, **kwargs):  # pylint: disable=unused-argument
         return MockResponse.token_file_good()
@@ -101,6 +106,9 @@ class TestFitbarkMain:
 
     def input(self, *args, **kwargs):  # pylint: disable=unused-argument
         return MockResponse.get_str()
+
+    def handle_secrets(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return json.loads(MockResponse.token_file_new().read())
 
     # Main Replacement functions
     def set_token(self, *args, **kwargs):  # pylint: disable=unused-argument
@@ -185,17 +193,30 @@ class TestFitbarkMain:
         opts = argparser(["--dog-pic"])
         assert opts.dog_pic
 
-    # def test_load_file(self, api, monkeypatch):
+    def test_load_file(self, api, monkeypatch):
+        monkeypatch.setattr(api, "handle_secrets", self.handle_secrets)
+
+        with pytest.raises(SystemExit):
+            api.load_file()
 
     def test_handle_secrets(self, api, monkeypatch):
-        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile)
+        monkeypatch.setattr(builtins, "open", self.io_error)
+        with pytest.raises(SystemExit):
+            with pytest.raises(IOError):
+                api.handle_secrets()
+
         monkeypatch.setattr(builtins, "open", self.token_file_good)
 
+        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile_false)
+        with pytest.raises(SystemExit):
+            api.handle_secrets()
+
+        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile_true)
         data = api.handle_secrets()
         assert isinstance(data, dict)
 
     def test_do_auth(self, api, monkeypatch):
-        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile)
+        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile_false)
         monkeypatch.setattr(
             FitbarkApi, "get_authorization_url", self.get_authorization_url
         )
@@ -206,6 +227,11 @@ class TestFitbarkMain:
         api.do_auth()
 
     def test_get_token(self, api, monkeypatch):
+        monkeypatch.setattr(builtins, "open", self.io_error)
+        with pytest.raises(SystemExit):
+            with pytest.raises(IOError):
+                api.get_token()
+
         monkeypatch.setattr(builtins, "open", self.token_file_good)
 
         data = api.get_token()
@@ -308,9 +334,9 @@ class TestFitbarkMain:
         assert isinstance(data, list)
 
     def test_main(self, monkeypatch):
-        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile)
+        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile_true)
         monkeypatch.setattr(builtins, "open", self.token_file_good)
-        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile)
+        monkeypatch.setattr(os.path, "isfile", self.os_path_isfile_true)
         monkeypatch.setattr(
             FitbarkApi, "get_authorization_url", self.get_authorization_url
         )
