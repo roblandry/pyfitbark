@@ -5,6 +5,8 @@ import os
 import sys
 import json
 
+from argparse import ArgumentParser
+
 # pylint: disable=unused-import
 from typing import Tuple, List, Optional, Union, Callable, Dict, Any  # NOQA
 
@@ -32,23 +34,92 @@ ch.setFormatter(formatter)
 _LOGGER.addHandler(ch)
 
 
-if __name__ == "__main__":
+def argparser() -> ArgumentParser:
+    """Construct the ArgumentParser for the CLI."""
+    parser = ArgumentParser(prog="pyfitbark")
+    # Redirect Logic
+    parser.add_argument(
+        "-g", "--get", help="Get redirect urls.", default=False, action="store_true"
+    )
+    parser.add_argument(
+        "-r", "--reset", help="Reset redirect urls.", default=False, action="store_true"
+    )
+    parser.add_argument(
+        "-a",
+        "--add",
+        help="Add CALLBACK redirect urls.",
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "-x",
+        "--remove",
+        help="Remove CALLBACK redirect urls.",
+        default=False,
+        action="store_true",
+    )
+    # User data
+    parser.add_argument(
+        "-u", "--user", help="Get user profile.", default=False, action="store_true"
+    )
+    parser.add_argument(
+        "--user-slug", help="Get user slug.", default=False, action="store_true"
+    )
+    parser.add_argument(
+        "--user-pic", help="Get user picture.", default=False, action="store_true"
+    )
+    # Dog data
+    parser.add_argument(
+        "-d", "--dogs", help="Get user dogs.", default=False, action="store_true"
+    )
+    parser.add_argument(
+        "--dog-slug", help="Get user dog slug(s).", default=False, action="store_true"
+    )
+    parser.add_argument(
+        "--dog", help="Get dog info using slug.", default=False, action="store_true"
+    )
+    parser.add_argument(
+        "--dog-pic",
+        help="Get dog picture(s) using slug(s).",
+        default=False,
+        action="store_true",
+    )
+    return parser
 
-    def get_token() -> Dict[str, str]:
-        """Get Token."""
-        try:
-            with open(TOKEN_FILE, "r") as cache:
-                return json.loads(cache.read())
-        except IOError:
-            _LOGGER.critical("IO Error!")
+
+class MainClass:
+    """Main class."""
+
+    def __init__(self) -> None:
+        """Init."""
+        self.client_id, self.client_secret = self.load_file()
+
+        # mypy ERROR:
+        # error: Argument "token_updater" to "FitbarkApi" has incompatible type
+        # "Callable[[Dict[str, str]], None]"; expected "Optional[Callable[[str], None]]"
+        self.api = FitbarkApi(
+            self.client_id,
+            self.client_secret,
+            REDIRECT_URI,
+            token=self.get_token(),
+            token_updater=self.set_token,  # type: ignore
+            callback_url=CALLBACK_URL,
+        )
+
+        self.do_auth()
+
+    def load_file(self) -> Tuple[str, str]:
+        """Load json from secrets file."""
+        json_secrets = self.handle_secrets()
+        client_id = json_secrets["client_id"]
+        client_secret = json_secrets["client_secret"]
+        if "INSERT IT HERE" in (client_id, client_secret):
+            _LOGGER.critical("Please configure secrets.json!")
             sys.exit(1)
+        else:
+            return client_id, client_secret
 
-    def set_token(token: Dict[str, str]) -> None:
-        """Set Token."""
-        with open(TOKEN_FILE, "w") as cache:
-            cache.write(json.dumps(token))
-
-    def handle_secrets() -> Dict[str, str]:
+    def handle_secrets(self) -> Dict[str, str]:
         """Create a secrets file if does not exist or load secrets."""
         if not os.path.isfile(SECRETS_FILE):
             data: Dict[str, str] = {
@@ -62,128 +133,191 @@ if __name__ == "__main__":
         else:
             try:
                 with open(SECRETS_FILE, "r") as cache:
-                    return json.loads(cache.read())
+                    j_dict = json.loads(cache.read())
             except IOError:
                 _LOGGER.critical("IO Error!")
                 sys.exit(1)
+            return j_dict
 
-    # Load and verify secrets
-    json_secrets = handle_secrets()
-    if json_secrets:
-        client_id = json_secrets["client_id"]
-        client_secret = json_secrets["client_secret"]
-        if "INSERT IT HERE" in (client_id, client_secret):
-            _LOGGER.critical("Please configure secrets.json!")
+    def do_auth(self) -> None:
+        """Load and verify secrets."""
+        # Begin auth and load token
+        if not os.path.isfile(TOKEN_FILE):
+            authorization_url, _ = self.api.get_authorization_url()
+            print("Please go to {} and authorize access.".format(authorization_url))
+            authorization_response = input("Enter the Authorization Code: ")
+            code = authorization_response
+            self.set_token(self.api.request_token(code=code))
+
+    def get_token(self) -> Dict[str, str]:
+        """Get Token."""
+        try:
+            with open(TOKEN_FILE, "r") as cache:
+                return json.loads(cache.read())
+        except IOError:
+            _LOGGER.critical("IO Error!")
             sys.exit(1)
 
-    # Setup API
-    # mypy ERROR:
-    # error: Argument "token_updater" to "FitbarkApi" has incompatible type
-    # "Callable[[Dict[str, str]], None]"; expected "Optional[Callable[[str], None]]"
-    api = FitbarkApi(
-        client_id,
-        client_secret,
-        REDIRECT_URI,
-        token=get_token(),
-        token_updater=set_token,  # type: ignore
-        callback_url=CALLBACK_URL,
-    )
+    def set_token(self, token: Dict[str, str]) -> None:
+        """Set Token."""
+        with open(TOKEN_FILE, "w") as cache:
+            cache.write(json.dumps(token))
 
-    # Begin auth and load token
-    if not os.path.isfile(TOKEN_FILE):
-        authorization_url, _ = api.get_authorization_url()
-        print("Please go to {} and authorize access.".format(authorization_url))
-        authorization_response = input("Enter the Authorization Code: ")
-        code = authorization_response
-        set_token(api.request_token(code=code))
+    # COMMANDS
+    def r_get(self) -> List[str]:
+        """Get redirect urls."""
+        token = self.api.hass_get_token()
+        data = self.api.hass_get_redirect_urls(token)
+        return data
 
-    # REDIRECT URL SETTINGS
-    # token = api.hass_get_token()
+    def r_reset(self) -> Dict[str, str]:
+        """Reset redirect urls."""
+        token = self.api.hass_get_token()
+        data = self.api.hass_add_redirect_urls("urn:ietf:wg:oauth:2.0:oob", token)
+        return data
 
-    # Get redirect urls
-    # redirect_urls = api.hass_get_redirect_urls(token)
-    # print(redirect_urls)
+    def r_add(self) -> List[str]:
+        """Add CALLBACK_URL."""
+        token = self.api.hass_get_token()
+        self.api.hass_add_url()
+        data = self.api.hass_get_redirect_urls(token)
+        return data
 
-    # Reset redirect urls
-    # r = api.hass_add_redirect_urls("urn:ietf:wg:oauth:2.0:oob", token)
-    # print(r)
+    def r_remove(self) -> List[str]:
+        """Remove CALLBACK_URL."""
+        token = self.api.hass_get_token()
+        self.api.hass_remove_url()
+        data = self.api.hass_get_redirect_urls(token)
+        return data
 
-    # Add CALLBACK_URL
-    # api.hass_add_url()
-    # redirect_urls = api.hass_get_redirect_urls(token)
-    # print(redirect_urls)
+    def u_profile(self) -> Dict[str, str]:
+        """Get various information about the specified user.
 
-    # Remove CALLBACK_URL
-    # api.hass_remove_url()
-    # redirect_urls = api.hass_get_redirect_urls(token)
-    # print(redirect_urls)
+        This includes name, username (email address), profile picture and Facebook ID.
+        """
+        data = self.api.get_user_profile()
+        return data
 
-    # -----------------
-    # GET DATA
-    # Get various information about the specified user including name,
-    # username (email address), profile picture and Facebook ID.
-    # r = api.get_user_profile()
-    # _LOGGER.debug("\nProfile: \n%s\n", r)
-    # # get user slug
-    # user_slug = r["user"]["slug"]
+    def u_slug(self) -> str:
+        """Get user slug."""
+        profile = self.u_profile()
+        data = profile["user"]["slug"]  # type: ignore
+        return data
 
-    # # Get the Base64 encoded picture for a specified user.
-    # r = api.get_user_picture(user_slug)
-    # user_pic = r["image"]["data"]
-    # _LOGGER.debug("\nUser Picture: \n%s\n", user_pic)
+    def u_pic(self) -> str:
+        """Get the Base64 encoded picture for a specified user."""
+        user_slug = self.u_slug()
+        user_pic = self.api.get_user_picture(user_slug)
+        data = user_pic["image"]["data"]  # type: ignore
+        return data
 
-    # Get the dogs related to the user.
-    # NECESSARY for follow on calls. Gets "dog_slug"
-    r = api.get_user_related_dogs()
-    # _LOGGER.debug("\nUser Dogs: \n%s\n", r)
+    def u_dogs(self) -> Dict[str, str]:
+        """Get user dogs."""
+        data = self.api.get_user_related_dogs()
+        return data
 
-    x = 0
-    # mypy ERROR:
-    # error: Item "None" of "Optional[str]" has no attribute "__iter__" (not iterable)
-    for dog in r["dog_relations"]:  # type: ignore
-        x += 1
-        # mypy ERROR:
-        # error: Item "str" of "Union[str, Any]" has no attribute "get"
-        dog_slug: Dict[str, str] = dog["dog"]["slug"]  # type: ignore
-        # _LOGGER.debug(dog_slug)
+    def u_dog_slug(self) -> List[str]:
+        """Get dog slug(s)."""
+        data = self.u_dogs()
+        s_list = []
+        # Loops all user dogs
+        for dog in data["dog_relations"]:
+            s_list.append(dog["dog"]["slug"])  # type: ignore
+        return s_list
 
-        # Get various information about a certain dog including name,
-        # breed, gender, weight, birthday and picture.
-        # response = api.get_dog(dog_slug)
-        # _LOGGER.debug("\nDog %s: \n%s\n", x, response)
+    def dog(self) -> List[Dict[str, Any]]:
+        """Get various information about a certain dog.
 
-        # Get the Base64 encoded picture for a specified dog.
-        # response = api.get_dog_picture(dog_slug)
-        # _LOGGER.debug("\nDog %s Picture: \n%s\n", x, response)
+        This includes name, breed, gender, weight, birthday and picture.
+        """
+        s_list = self.u_dog_slug()
+        d_list = []
+        # Loops all user dogs
+        for dog in s_list:
+            d_list.append(self.api.get_dog(dog))
+        return d_list
 
-        # Get a list of users currently associated with a specified dog,
-        # together with the type of relationship (Owner or Friend) and privacy
-        # settings for each user (how far back in time the activity data is visible).
-        # response = api.get_dog_related_users(dog_slug)
-        # _LOGGER.debug("\nDog %s Users: \n%s\n", x, response)
+    def d_pic(self) -> List[str]:
+        """Get the Base64 encoded picture for a specified dog."""
+        s_list = self.u_dog_slug()
+        d_list = []
+        # Loops all user dogs
+        for dog in s_list:
+            d = self.api.get_dog_picture(dog)
+            s = d["image"]["data"]  # type: ignore
+            d_list.append(s)
+        return d_list
 
-        # Get a dog’s current daily goal and future daily goals set by an authorized
-        # user (if any).
-        # response = api.get_daily_goal(dog_slug)
-        # _LOGGER.debug("\nDog %s Daily Goal: \n%s\n", x, response)
 
-        # Get historical series data between two specified date times.
-        # date_from = "12/25/19"
-        # response = api.get_activity_series(dog_slug, date_from=date_from)
-        # _LOGGER.debug("\nDog %s Activity Series: \n%s\n", x, response)
+def main() -> None:
+    """Main."""
+    parser = argparser()
+    args = parser.parse_args()
+    # print(type(parser))
 
-        # Get this dogs, and similar dogs, statistics.
-        # response = api.get_dog_similar_stats(dog_slug)
-        # _LOGGER.debug("\nDog %s Simular Stats: \n%s\n", x, response)
+    api = MainClass()
+    r: Any = None
+    if args.get:
+        r = api.r_get()
+    elif args.reset:
+        r = api.r_reset()
+    elif args.add:
+        r = api.r_add()
+    elif args.remove:
+        r = api.r_remove()
 
-        # Get historical activity data by totaling the historical series between two
-        # specified date times.
-        # date_from = "12/25/19"
-        # response = api.get_activity_totals(dog_slug, date_from=date_from)
-        # _LOGGER.debug("\nDog %s Activity Totals: \n%s\n", x, response)
+    elif args.user:
+        r = api.u_profile()
+    elif args.user_slug:
+        r = api.u_slug()
+    elif args.user_pic:
+        r = api.u_pic()
 
-        # Get the time (in minutes) spent at each activity level for a certain dog
-        # between two specified date times.
-        # date_from = "12/25/19"
-        # response = api.get_time_breakdown(dog_slug, date_from=date_from)
-        # _LOGGER.debug("\nDog %s Time Breakdown: \n%s\n", x, response)
+    elif args.dogs:
+        r = api.u_dogs()
+    elif args.dog_slug:
+        r = api.u_dog_slug()
+    elif args.dog:
+        r = api.dog()
+    elif args.dog_pic:
+        r = api.d_pic()
+
+    # Get a list of users currently associated with a specified dog,
+    # together with the type of relationship (Owner or Friend) and privacy
+    # settings for each user (how far back in time the activity data is visible).
+    # response = api.get_dog_related_users(dog_slug)
+    # _LOGGER.debug("\nDog %s Users: \n%s\n", x, response)
+
+    # Get a dog’s current daily goal and future daily goals set by an authorized
+    # user (if any).
+    # response = api.get_daily_goal(dog_slug)
+    # _LOGGER.debug("\nDog %s Daily Goal: \n%s\n", x, response)
+
+    # Get historical series data between two specified date times.
+    # date_from = "12/25/19"
+    # response = api.get_activity_series(dog_slug, date_from=date_from)
+    # _LOGGER.debug("\nDog %s Activity Series: \n%s\n", x, response)
+
+    # Get this dogs, and similar dogs, statistics.
+    # response = api.get_dog_similar_stats(dog_slug)
+    # _LOGGER.debug("\nDog %s Simular Stats: \n%s\n", x, response)
+
+    # Get historical activity data by totaling the historical series between two
+    # specified date times.
+    # date_from = "12/25/19"
+    # response = api.get_activity_totals(dog_slug, date_from=date_from)
+    # _LOGGER.debug("\nDog %s Activity Totals: \n%s\n", x, response)
+
+    # Get the time (in minutes) spent at each activity level for a certain dog
+    # between two specified date times.
+    # date_from = "12/25/19"
+    # response = api.get_time_breakdown(dog_slug, date_from=date_from)
+    # _LOGGER.debug("\nDog %s Time Breakdown: \n%s\n", x, response)
+
+    if r:
+        r = json.dumps(r, indent=2, separators=(",", ": "))
+        print(r)
+
+
+if __name__ == "__main__":
+    main()

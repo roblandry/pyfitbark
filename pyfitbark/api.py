@@ -435,7 +435,6 @@ class FitbarkApi:
 
     def hass_get_token(self) -> str:
         """Get the token."""
-        print("Getting token.")
         json_data = self.hass_make_request(
             "POST",
             "https://app.fitbark.com/oauth/token",
@@ -452,7 +451,6 @@ class FitbarkApi:
 
     def hass_get_redirect_urls(self, access_token: str) -> List[str]:
         """Get a list of redirect URLs."""
-        print("Getting Redirect URLs.")
         json_data = self.hass_make_request(
             "GET",
             "https://app.fitbark.com/api/v2/redirect_urls",

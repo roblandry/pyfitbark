@@ -6,6 +6,8 @@ import httpretty
 
 import pytest
 
+import datetime
+
 from pyfitbark.api import BASE_URL, FitbarkApi
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -248,7 +250,6 @@ class TestFitbarkApi:
     # # def _get_common_args(self):
     # #     return self.API_ENDPOINT, self.API_VERSION
 
-    # @httpretty.activate
     def test_get_date_string(self, api):
         """Test FitbarkApi._get_date_string()."""
         date = "2019-12-31"
@@ -256,9 +257,42 @@ class TestFitbarkApi:
         assert isinstance(data, str)
         assert data == "2019-12-31"
 
+        today = datetime.date.today()
+        data = api._get_date_string(today)  # NOQA
+        assert isinstance(data, str)
+        assert data == today.strftime("%Y-%m-%d")
+
     @httpretty.activate
     def test_get_activity_series(self, api):
         """Test FitbarkApi.get_activity_series()."""
+
+        def verify_return(data):
+            assert isinstance(data, dict)
+            assert len(data) == 1
+            activity_series = data["activity_series"]
+            assert len(activity_series) == 2
+            assert len(activity_series["records"]) == 2
+
+            records = activity_series["records"][0]
+            assert len(records) == 7
+            assert records["date"] == "2014-12-27"
+            assert records["activity_value"] == 921
+            assert records["min_play"] == 15
+            assert records["min_active"] == 125
+            assert records["min_rest"] == 1300
+            assert records["daily_target"] == 5000
+            assert records["has_trophy"] == 0
+
+            records = activity_series["records"][1]
+            assert len(records) == 7
+            assert records["date"] == "2014-12-28"
+            assert records["activity_value"] == 5421
+            assert records["min_play"] == 114
+            assert records["min_active"] == 484
+            assert records["min_rest"] == 838
+            assert records["daily_target"] == 5000
+            assert records["has_trophy"] == 1
+
         with open(
             os.path.join(CURRENT_DIR, "json/", "get_activity_series.json"), "r"
         ) as get_activity_series:
@@ -267,34 +301,19 @@ class TestFitbarkApi:
                 BASE_URL + "/activity_series",
                 body=get_activity_series.read(),
             )
+
+        data = api.get_activity_series("/activity_series")
+        verify_return(data)
+
         data = api.get_activity_series(
-            "/activity_series", "2019-12-25", "2019-12-31", "DAILY"
+            "/activity_series", "2019-12-25", "2019-12-31", "BAD INPUT"
         )
-        assert isinstance(data, dict)
-        assert len(data) == 1
-        activity_series = data["activity_series"]
-        assert len(activity_series) == 2
-        assert len(activity_series["records"]) == 2
+        verify_return(data)
 
-        records = activity_series["records"][0]
-        assert len(records) == 7
-        assert records["date"] == "2014-12-27"
-        assert records["activity_value"] == 921
-        assert records["min_play"] == 15
-        assert records["min_active"] == 125
-        assert records["min_rest"] == 1300
-        assert records["daily_target"] == 5000
-        assert records["has_trophy"] == 0
-
-        records = activity_series["records"][1]
-        assert len(records) == 7
-        assert records["date"] == "2014-12-28"
-        assert records["activity_value"] == 5421
-        assert records["min_play"] == 114
-        assert records["min_active"] == 484
-        assert records["min_rest"] == 838
-        assert records["daily_target"] == 5000
-        assert records["has_trophy"] == 1
+        with pytest.raises(ValueError):
+            assert api.get_activity_series(
+                "/activity_series", "2019-12-31", "2019-12-25"
+            )
 
     @httpretty.activate
     def test_get_dog_similar_stats(self, api):
@@ -329,6 +348,12 @@ class TestFitbarkApi:
     @httpretty.activate
     def test_get_activity_totals(self, api):
         """Test FitbarkApi.get_activity_totals()."""
+
+        def verify_return(data):
+            assert isinstance(data, dict)
+            assert len(data) == 1
+            assert data["activity_value"] == 26305
+
         with open(
             os.path.join(CURRENT_DIR, "json/", "get_activity_totals.json"), "r"
         ) as get_activity_totals:
@@ -337,14 +362,30 @@ class TestFitbarkApi:
                 BASE_URL + "/activity_totals",
                 body=get_activity_totals.read(),
             )
+
+        data = api.get_activity_totals("/activity_totals")
+        verify_return(data)
+
         data = api.get_activity_totals("/activity_totals", "2019-12-25", "2019-12-31")
-        assert isinstance(data, dict)
-        assert len(data) == 1
-        assert data["activity_value"] == 26305
+        verify_return(data)
+
+        with pytest.raises(ValueError):
+            assert api.get_activity_totals(
+                "/activity_totals", "2019-12-31", "2019-12-25"
+            )
 
     @httpretty.activate
     def test_get_time_breakdown(self, api):
         """Test FitbarkApi.get_time_breakdown()."""
+
+        def verify_return(data):
+            assert isinstance(data, dict)
+            assert len(data) == 1
+            activity_level = data["activity_level"]
+            assert activity_level["min_play"] == 321
+            assert activity_level["min_active"] == 941
+            assert activity_level["min_rest"] == 4498
+
         with open(
             os.path.join(CURRENT_DIR, "json/", "get_time_breakdown.json"), "r"
         ) as get_time_breakdown:
@@ -353,13 +394,15 @@ class TestFitbarkApi:
                 BASE_URL + "/time_breakdown",
                 body=get_time_breakdown.read(),
             )
+
+        data = api.get_time_breakdown("/time_breakdown")
+        verify_return(data)
+
         data = api.get_time_breakdown("/time_breakdown", "2019-12-25", "2019-12-31")
-        assert isinstance(data, dict)
-        assert len(data) == 1
-        activity_level = data["activity_level"]
-        assert activity_level["min_play"] == 321
-        assert activity_level["min_active"] == 941
-        assert activity_level["min_rest"] == 4498
+        verify_return(data)
+
+        with pytest.raises(ValueError):
+            assert api.get_time_breakdown("/time_breakdown", "2019-12-31", "2019-12-25")
 
     @httpretty.activate
     def test_get(self, api):
@@ -434,42 +477,23 @@ class TestFitbarkApi:
         assert daily_goals["goal"] == 1091
         assert daily_goals["date"] == "2019-12-31"
 
-    # @httpretty.activate
-    # def test_get_authorization_url(self, api):
-    #     """Test FitbarkApi.get_authorization_url()."""
-    #     return self._oauth.authorization_url(FITBARK_OAUTH, state)
+    def test_get_authorization_url(self, api):
+        """Test FitbarkApi.get_authorization_url()."""
+        assert isinstance(api.get_authorization_url(), tuple)
 
-    # @httpretty.activate
+    # TODO: ERROR
+    # InvalidClientError
     # def test_request_token(self, api):
     #     """Test FitbarkApi.request_token()."""
-    # def request_token(
-    #     self, authorization_response: Optional[str] = None, code: Optional[str] = None
-    # ) -> Dict[str, str]:
-    #     """Generic method to fetch a Fitbark access token.
-
-    #     :param authorization_response: Authorization response URL, the callback
-    #                                    URL of the request back to you.
-    #     :param code: Authorization code
-    #     :return: A token dict
-    #     """
-    #     return self._oauth.fetch_token(
-    #         FITBARK_TOKEN,
-    #         authorization_response=authorization_response,
-    #         code=code,
-    #         client_secret=self.client_secret,
+    #     assert isinstance(
+    #         api.request_token("fake authorization_response", "fake code"), dict
     #     )
 
-    # @httpretty.activate
+    # TODO: ERROR
+    # UnsupportedGrantTypeError
     # def test_refresh_tokens(self, api):
-    #     """Test FitbarkApi.get_daily_goal()."""
-    # def refresh_tokens(self) -> Dict[str, Union[str, int]]:
-    #     """Refresh and return new Fitbark tokens."""
-    #     token = self._oauth.refresh_token(FITBARK_REFRESH)
-
-    #     if self.token_updater is not None:
-    #         self.token_updater(token)
-
-    #     return token
+    #     """Test FitbarkApi.refresh_tokens()."""
+    #     assert isinstance(api.refresh_tokens(), dict)
 
     # @httpretty.activate
     # def test__request(self, api):
