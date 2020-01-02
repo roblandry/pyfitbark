@@ -11,6 +11,7 @@ docs/_build
 dist
 build
 env
+venv
 htmlcov
 
 # Editors
